@@ -106,3 +106,19 @@ button { cursor: pointer; }
 .empty-panel svg { width: 28px; color: #79b8af; }
 .empty-panel h2 { color: var(--ink); font-size: 16px; margin: 0; }
 .empty-panel p { font-size: 11px; margin: 0; }
+.modal-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 20px; background: rgba(24, 50, 56, .38); backdrop-filter: blur(3px); }
+.record-modal { width: min(100%, 540px); max-height: min(700px, calc(100vh - 40px)); overflow: auto; background: #fff; border: 1px solid var(--line); border-radius: 13px; box-shadow: 0 24px 70px rgba(24, 50, 56, .2); padding: 24px; }
+.modal-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 22px; }
+.modal-header .eyebrow { margin-bottom: 8px; }
+.modal-header h2 { margin: 0; font-size: 21px; letter-spacing: -.6px; font-weight: 600; }
+.modal-close { display: grid; place-items: center; border: 1px solid var(--line); border-radius: 7px; background: #fff; color: #849392; width: 31px; height: 31px; }
+.modal-close:hover { color: var(--teal); background: #f0f8f6; }
+.modal-close svg { width: 15px; }
+.modal-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.modal-field { display: flex; flex-direction: column; gap: 7px; color: #506163; font-size: 11px; font-weight: 700; }
+.modal-field input, .modal-field select { width: 100%; border: 1px solid #d6e1df; border-radius: 7px; padding: 11px 12px; color: var(--ink); background: #fff; outline: none; font-size: 12px; }
+.modal-field input:focus, .modal-field select:focus { border-color: #3c9b91; box-shadow: 0 0 0 3px #dff1ee; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 26px; }
+.modal-actions .outline-button { padding: 11px 15px; }
+.modal-actions .primary-button { padding: 11px 15px; }
+@media (max-width: 560px) { .record-modal { padding: 19px; } .modal-fields { grid-template-columns: 1fr; gap: 13px; } .modal-actions { flex-direction: column-reverse; } .modal-actions button { width: 100%; justify-content: center; } }
