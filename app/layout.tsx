@@ -1,11 +1,11 @@
 import { Analytics } from '@vercel/analytics/next'
-import { Urbanist } from 'next/font/google'
+import { DM_Sans } from 'next/font/google'
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
-const urbanist = Urbanist({
+const dmSans = DM_Sans({
   subsets: ['latin'],
-  variable: '--font-urbanist',
+  variable: '--font-dm-sans',
 })
 
 export const metadata: Metadata = {
@@ -46,7 +46,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${urbanist.variable} antialiased`}>
+      <body className={`${dmSans.variable} antialiased`}>
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
