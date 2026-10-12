@@ -1,6 +1,12 @@
 import { Analytics } from '@vercel/analytics/next'
+import { Urbanist } from 'next/font/google'
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+
+const urbanist = Urbanist({
+  subsets: ['latin'],
+  variable: '--font-urbanist',
+})
 
 export const metadata: Metadata = {
   title: 'CareFlow Health | Admin Portal',
@@ -40,7 +46,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">
+      <body className={`${urbanist.variable} antialiased`}>
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
