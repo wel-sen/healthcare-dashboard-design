@@ -32,7 +32,7 @@ button { cursor: pointer; }
 .login-heading > p:last-child { color: var(--muted); font-size: 14px; margin: 0 0 36px; }
 .login-form { display: flex; flex-direction: column; gap: 22px; }
 .login-form label { color: #425457; font-size: 12px; font-weight: 700; display: flex; flex-direction: column; gap: 8px; }
-.login-form input[type='email'], .password-wrap input { width: 100%; border: 1px solid #d6e1df; border-radius: 7px; padding: 13px 14px; color: var(--ink); outline: none; background: #fff; font-size: 14px; }
+.login-form input[type='email'], .login-form input[type='password'] { width: 100%; border: 1px solid #d6e1df; border-radius: 7px; padding: 13px 14px; color: var(--ink); outline: none; background: #fff; font-size: 14px; }
 .login-form input:focus { border-color: #3c9b91; box-shadow: 0 0 0 3px #dff1ee; }
 .password-wrap { position: relative; }
 .password-wrap button { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: 0; color: #16827a; font-size: 11px; font-weight: 700; }
