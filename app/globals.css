@@ -117,7 +117,7 @@ button { cursor: pointer; }
 .modal-close svg { width: 15px; }
 .modal-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .modal-field { display: flex; flex-direction: column; gap: 7px; color: #506163; font-size: 11px; font-weight: 700; }
-.modal-field input, .modal-field select { width: 100%; border: 1px solid #d6e1df; border-radius: 7px; padding: 11px 12px; color: var(--ink); background: #fff; outline: none; font-size: 12px; }
+.modal-field input, .modal-field select { width: 100%; border: 1px solid #d6e1df; border-radius: 7px; padding: 11px 12px; color: var(--ink); background: #fff; outline: none; font-size: 12px; } .phone-input { display: flex; align-items: center; overflow: hidden; border: 1px solid #d6e1df; border-radius: 7px; background: #fff; } .phone-input b { padding: 11px 0 11px 12px; color: #506163; font-size: 12px; font-weight: 700; } .phone-input input { border: 0; border-radius: 0; padding-left: 7px; } .phone-input:focus-within { border-color: #3c9b91; box-shadow: 0 0 0 3px #dff1ee; }
 .modal-field input:focus, .modal-field select:focus { border-color: #3c9b91; box-shadow: 0 0 0 3px #dff1ee; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 26px; }
 .modal-actions .outline-button { padding: 11px 15px; }
