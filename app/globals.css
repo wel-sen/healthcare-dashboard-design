@@ -121,11 +121,11 @@ button { cursor: pointer; }
 .primary-button.compact { padding: 10px 14px; font-size: 11px; white-space: nowrap; }
 .primary-button.compact svg { width: 14px; }
 .management-panel { min-width: 0; }
-.management-icon { width: 31px; height: 31px; border-radius: 8px; background: #e2f1ed; color: #187d76; display: grid; place-items: center; }
+.management-icon { width: 31px; height: 31px; border-radius: 8px; background: #e5f0fb; color: #2563a8; display: grid; place-items: center; }
 .management-icon svg { width: 16px; }
 .table-actions { display: flex; align-items: center; gap: 5px; }
 .table-actions button { width: 26px; height: 26px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: #849392; }
-.table-actions button:hover { color: var(--teal); border-color: #9bd3ca; background: #f0f8f6; }
+.table-actions button:hover { color: #2563a8; border-color: #a8c7e4; background: #f1f7fd; }
 .table-actions button:last-child:hover { color: #c2674d; border-color: #e7c3b8; background: #fff7f4; }
 .table-actions svg { width: 13px; }
 .empty-panel { min-height: 260px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; color: #81908f; }
