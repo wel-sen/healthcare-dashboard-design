@@ -1,15 +1,25 @@
 'use client'
 
 import { useState } from 'react'
+import { useEffect } from 'react'
+import { createClient } from '@/utils/supabase/client'
 import { Activity, ArrowUpRight, Bell, CalendarDays, ChevronDown, LayoutDashboard, LogOut, Menu, Pencil, Pill, Plus, Search, Settings, ShieldCheck, Stethoscope, Trash2, UserRound, Users, X } from 'lucide-react'
 
 
 
 type Employee = { id: number; name: string; phone: string; email: string; status: 'Working' | 'Not working' }
-type Patient = { id: number; date: string; name: string; mrn: string; age: string; gender: string; diagnosis: string; price: string; remark: 'Completed' | 'Pending' }
+type Patient = { id: number; date: string; name: string; mrn: string; age: string; gender: string; diagnosis: string; price: string; remark: string }
 type Medication = { id: number; date: string; name: string; weight: string; unit: 'g' | 'mg'; amount: string; price: string }
 type Diagnostic = { id: number; name: string; price: string; description: string }
 type ModalType = 'Employees' | 'Patients' | 'Pharmacy' | 'Medicines' | 'Diagnostics' | null
+
+const statusClass = (value: string) => {
+  const v = String(value).toLowerCase()
+  if (['working', 'completed', 'active'].includes(v)) return 'status-green'
+  if (['not working', 'pending', 'on leave'].includes(v)) return 'status-amber'
+  if (['inactive', 'cancelled', 'failed'].includes(v)) return 'status-red'
+  return 'status-blue'
+}
 
 const navigation = [{ label: 'Overview', icon: LayoutDashboard }, { label: 'Employees', icon: Users }, { label: 'Patients', icon: UserRound }, { label: 'Pharmacy', icon: Pill }, { label: 'Services', icon: Stethoscope }]
 const diagnosisOptions = ['General care', 'Cardiology', 'Dermatology', 'Dental examination', 'Blood test', 'Ultrasound', 'X-ray', 'Physiotherapy']
@@ -19,32 +29,207 @@ const seedMedication: Medication[] = [{ id: 1, date: '2025-10-14', name: 'Amoxic
 const seedDiagnostics: Diagnostic[] = diagnosisOptions.slice(0, 5).map((name, index) => ({ id: index + 1, name, price: String([95, 180, 145, 70, 40][index]), description: 'Available Eden Clinic service' }))
 const seedMedicines = seedMedication.map(({ id, name, weight, unit, amount, price }) => ({ id, name, weight, unit, amount, price }))
 
-const money = (value: string) => `ETB ${Number(value.replace(/[^0-9.]/g, '') || 0).toFixed(2)}`
-const dateLabel = (value: string) => value ? new Date(`${value}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
+const money = (value: string | null | undefined) =>
+  `ETB ${Number((value ?? '').replace(/[^0-9.]/g, '') || 0).toFixed(2)}`
+
+const dateLabel = (value: string | null | undefined) =>
+  value ? new Date(`${value}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
 
 export default function Page() {
   const [isLoggedIn, setIsLoggedIn] = useState(false), [email, setEmail] = useState('admin@edenclinic.com'), [password, setPassword] = useState('password'), [active, setActive] = useState('Overview'), [mobileNav, setMobileNav] = useState(false), [employees, setEmployees] = useState(seedEmployees), [patients, setPatients] = useState(seedPatients), [medications, setMedications] = useState(seedMedication), [medicines, setMedicines] = useState(seedMedicines), [diagnostics, setDiagnostics] = useState(seedDiagnostics), [query, setQuery] = useState(''), [modal, setModal] = useState<ModalType>(null), [editing, setEditing] = useState<number | null>(null)
-  if (!isLoggedIn) return <Login email={email} password={password} setEmail={setEmail} setPassword={setPassword} onLogin={() => setIsLoggedIn(true)} />
+
+  // Create the Supabase client once
+  const supabase = createClient()
+
+  const handleLogin = async () => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
+      alert(error.message)
+      return
+    }
+    setIsLoggedIn(true)
+  }
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setIsLoggedIn(true)
+    })
+  }, [])
+
+  // Load data whenever the user is logged in
+  useEffect(() => {
+    if (!isLoggedIn) return
+
+    const load = async () => {
+      const [emp, pat, med] = await Promise.all([
+        supabase.from('employees').select('*'),
+        supabase.from('patients').select('*'),
+        supabase.from('medications').select('*'),
+      ])
+
+      if (emp.data) setEmployees(emp.data as Employee[])
+      if (pat.data) setPatients(pat.data as Patient[])
+      if (med.data) {
+        const rows = med.data as Medication[]
+        setMedications(rows)
+        setMedicines(rows.map(({ id, name, weight, unit, amount, price }) => ({ id, name, weight, unit, amount, price })))
+      }
+    }
+
+    load()
+  }, [isLoggedIn])
+
+  if (!isLoggedIn) return <Login email={email} password={password} setEmail={setEmail} setPassword={setPassword} onLogin={handleLogin} />
+
   const openAdd = (type: ModalType) => { setEditing(null); setModal(type) }, openEdit = (type: ModalType, id: number) => { setEditing(id); setModal(type) }
+
   const filteredEmployees = employees.filter((item) => `${item.name} ${item.email}`.toLowerCase().includes(query.toLowerCase())), filteredPatients = patients.filter((item) => `${item.name} ${item.mrn} ${item.diagnosis}`.toLowerCase().includes(query.toLowerCase())), filteredMedication = medications.filter((item) => item.name.toLowerCase().includes(query.toLowerCase()))
-  const save = (data: Record<string, string>) => { const id = editing ?? Date.now(); if (modal === 'Employees') setEmployees(editing ? employees.map((item) => item.id === editing ? { ...item, ...data, id } as Employee : item) : [...employees, { ...data, id } as Employee]); if (modal === 'Patients') setPatients(editing ? patients.map((item) => item.id === editing ? { ...item, ...data, id } as Patient : item) : [...patients, { ...data, id, mrn: String(Math.max(0, ...patients.map((patient) => Number(patient.mrn))) + 1).padStart(5, '0') } as Patient]); if (modal === 'Pharmacy') setMedications(editing ? medications.map((item) => item.id === editing ? { ...item, ...data, id } as Medication : item) : [...medications, { ...data, id } as Medication]); if (modal === 'Medicines') setMedicines(editing ? medicines.map((item) => item.id === editing ? { ...item, ...data, id } as typeof item : item) : [...medicines, { ...data, id } as typeof medicines[number]]); if (modal === 'Diagnostics') { setDiagnostics(editing ? diagnostics.map((item) => item.id === editing ? { ...item, ...data, id } as Diagnostic : item) : [...diagnostics, { ...data, id } as Diagnostic]); } setModal(null) }
-  const remove = (type: ModalType, id: number) => { if (type === 'Employees') setEmployees(employees.filter((item) => item.id !== id)); if (type === 'Patients') setPatients(patients.filter((item) => item.id !== id)); if (type === 'Pharmacy') setMedications(medications.filter((item) => item.id !== id)); if (type === 'Medicines') setMedicines(medicines.filter((item) => item.id !== id)); if (type === 'Diagnostics') setDiagnostics(diagnostics.filter((item) => item.id !== id)) }
+
+
+  const save = async (data: Record<string, string>) => {
+    const id = editing ?? Date.now()
+
+    if (modal === 'Employees') {
+      if (editing) {
+        await supabase.from('employees').update(data).eq('id', editing)
+      } else {
+        const { data: inserted } = await supabase.from('employees').insert(data).select().single()
+        if (inserted) setEmployees([...employees, inserted as Employee])
+      }
+      // refetch to get server-assigned IDs
+      const { data: fresh } = await supabase.from('employees').select('*')
+      if (fresh) setEmployees(fresh as Employee[])
+    }
+
+    if (modal === 'Patients') {
+      if (editing) {
+        await supabase.from('patients').update(data).eq('id', editing)
+      } else {
+        const mrn = String(Math.max(0, ...patients.map((p) => Number(p.mrn))) + 1).padStart(5, '0')
+        await supabase.from('patients').insert({ ...data, mrn })
+      }
+      const { data: fresh } = await supabase.from('patients').select('*')
+      if (fresh) setPatients(fresh as Patient[])
+    }
+
+    if (modal === 'Pharmacy') {
+      if (editing) {
+        await supabase.from('medications').update(data).eq('id', editing)
+      } else {
+        await supabase.from('medications').insert(data)
+      }
+      const { data: fresh } = await supabase.from('medications').select('*')
+      if (fresh) {
+        setMedications(fresh as Medication[])
+        setMedicines(fresh.map(({ id, name, weight, unit, amount, price }) => ({ id, name, weight, unit, amount, price })))
+      }
+    }
+
+    // Medicines and Diagnostics still live only in local state for now
+    if (modal === 'Medicines') {
+      if (editing) setMedicines(medicines.map((item) => item.id === editing ? { ...item, ...data, id } as typeof item : item))
+      else setMedicines([...medicines, { ...data, id } as typeof medicines[number]])
+    }
+    if (modal === 'Diagnostics') {
+      if (editing) setDiagnostics(diagnostics.map((item) => item.id === editing ? { ...item, ...data, id } as Diagnostic : item))
+      else setDiagnostics([...diagnostics, { ...data, id } as Diagnostic])
+    }
+
+    setModal(null)
+  }
+
+
+  const remove = async (type: ModalType, id: number) => {
+    if (type === 'Employees') { await supabase.from('employees').delete().eq('id', id); setEmployees(employees.filter((i) => i.id !== id)) }
+    if (type === 'Patients') { await supabase.from('patients').delete().eq('id', id); setPatients(patients.filter((i) => i.id !== id)) }
+    if (type === 'Pharmacy') { await supabase.from('medications').delete().eq('id', id); setMedications(medications.filter((i) => i.id !== id)); setMedicines(medicines.filter((i) => i.id !== id)) }
+    if (type === 'Medicines') setMedicines(medicines.filter((i) => i.id !== id))
+    if (type === 'Diagnostics') setDiagnostics(diagnostics.filter((i) => i.id !== id))
+  }
+
+
+
   const record = (type: ModalType, id: number | null) => type === 'Employees' ? employees.find((item) => item.id === id) : type === 'Patients' ? patients.find((item) => item.id === id) : type === 'Pharmacy' ? medications.find((item) => item.id === id) : type === 'Medicines' ? medicines.find((item) => item.id === id) : diagnostics.find((item) => item.id === id)
   const serviceNames = diagnostics.map((item) => item.name)
-  return <main className="app-shell">{mobileNav && <button className="mobile-overlay" aria-label="Close navigation" onClick={() => setMobileNav(false)} />}<aside className={`sidebar ${mobileNav ? 'sidebar-open' : ''}`}><div className="sidebar-top"><div className="brand"><img className="clinic-logo" src="/eden_clinic_logo.png" alt="Eden Clinic logo" /><span>eden<span>clinic</span></span></div><button className="close-nav" onClick={() => setMobileNav(false)} aria-label="Close menu"><X /></button></div><div className="workspace"><div className="workspace-icon">EC</div><div><strong>Eden Clinic</strong><span>Admin workspace</span></div><ChevronDown /></div><nav aria-label="Main navigation"><p className="nav-label">WORKSPACE</p>{navigation.map(({ label, icon: Icon }) => <button key={label} className={`nav-item ${active === label ? 'nav-active' : ''}`} onClick={() => { setActive(label); setMobileNav(false) }}><Icon /><span>{label}</span></button>)}<p className="nav-label nav-label-spaced">MANAGE</p><button className="nav-item"><CalendarDays /><span>Appointments</span></button></nav><div className="sidebar-bottom"><button className="nav-item"><Settings /><span>Settings</span></button><div className="user-card"><div className="avatar avatar-teal">DR</div><div><strong>Eden Agena</strong><span>Administrator</span></div><button onClick={() => setIsLoggedIn(false)} aria-label="Sign out"><LogOut /></button></div></div></aside><section className="main-content"><header className="topbar"><button className="menu-button" onClick={() => setMobileNav(true)} aria-label="Open navigation"><Menu /></button><div className="breadcrumb"><span>Workspace</span><b>/</b><strong>{active}</strong></div><div className="topbar-actions"><div className="search-box"><Search /><input placeholder="Search anything..." aria-label="Search" value={query} onChange={(event) => setQuery(event.target.value)} /></div><button className="icon-button notification" aria-label="Notifications"><Bell /><i /></button><div className="topbar-avatar">RK</div></div></header>{active === 'Overview' ? <Overview employees={employees} patients={patients} medications={medications} onNavigate={setActive} /> : active === 'Employees' ? <CrudSection title="Employees" eyebrow="TEAM DIRECTORY" description="Manage the people who keep Eden Clinic moving." icon={Users} columns={['Name', 'Phone number', 'Email', 'Status', 'Actions']} rows={filteredEmployees.map((item) => [item.name, item.phone, item.email, item.status, item.id])} onAdd={() => openAdd('Employees')} onEdit={(id) => openEdit('Employees', id)} onDelete={(id) => remove('Employees', id)} /> : active === 'Patients' ? <CrudSection title="Patients" eyebrow="PATIENT DIRECTORY" description="Track patient visits, diagnoses, and service outcomes." icon={UserRound} columns={['Date', 'Patient name', 'MRN', 'Age', 'Gender', 'Test / Diagnosis', 'Service price', 'Remark', 'Actions']} rows={filteredPatients.map((item) => [dateLabel(item.date), item.name, item.mrn, item.age, item.gender, item.diagnosis, money(item.price), item.remark, item.id])} onAdd={() => openAdd('Patients')} onEdit={(id) => openEdit('Patients', id)} onDelete={(id) => remove('Patients', id)} /> : active === 'Pharmacy' ? <CrudSection title="Pharmacy" eyebrow="MEDICATION INVENTORY" description="Keep medication quantities and pricing current." icon={Pill} columns={['Date', 'Medication name', 'Weight', 'Amount / quantity', 'Item price', 'Actions']} rows={filteredMedication.map((item) => [dateLabel(item.date), item.name, `${item.weight} ${item.unit}`, item.amount, money(item.price), item.id])} onAdd={() => openAdd('Pharmacy')} onEdit={(id) => openEdit('Pharmacy', id)} onDelete={(id) => remove('Pharmacy', id)} /> : active === 'Services' ? <Services medicines={medicines} diagnostics={diagnostics} onAdd={openAdd} onEdit={openEdit} onDelete={remove} /> : null}</section>{modal && <RecordModal type={modal} record={record(modal, editing)} diagnosisOptions={[...diagnosisOptions, ...serviceNames]} medicationOptions={medicines.map((item) => item.name)} onClose={() => setModal(null)} onSave={save} />}</main>
+  return <main className="app-shell">{mobileNav && <button className="mobile-overlay" aria-label="Close navigation" onClick={() => setMobileNav(false)} />}<aside className={`sidebar ${mobileNav ? 'sidebar-open' : ''}`}><div className="sidebar-top"><div className="brand"><img className="clinic-logo" src="/eden_clinic_logo.png" alt="Eden Clinic logo" /><span>eden<span>clinic</span></span></div><button className="close-nav" onClick={() => setMobileNav(false)} aria-label="Close menu"><X /></button></div><div className="workspace"><div className="workspace-icon">EC</div><div><strong>Eden Clinic</strong><span>Admin workspace</span></div><ChevronDown /></div><nav aria-label="Main navigation"><p className="nav-label">WORKSPACE</p>{navigation.map(({ label, icon: Icon }) => <button key={label} className={`nav-item ${active === label ? 'nav-active' : ''}`} onClick={() => { setActive(label); setMobileNav(false) }}><Icon /><span>{label}</span></button>)}<p className="nav-label nav-label-spaced">MANAGE</p><button className="nav-item"><CalendarDays /><span>Appointments</span></button></nav><div className="sidebar-bottom"><button className="nav-item"><Settings /><span>Settings</span></button><div className="user-card"><div className="avatar avatar-teal">DR</div><div><strong>Eden Agena</strong><span>Administrator</span></div>
+
+    <button onClick={async () => { await supabase.auth.signOut(); setIsLoggedIn(false) }} aria-label="Sign out"><LogOut /></button>
+
+  </div></div></aside><section className="main-content"><header className="topbar"><button className="menu-button" onClick={() => setMobileNav(true)} aria-label="Open navigation"><Menu /></button><div className="breadcrumb"><span>Workspace</span><b>/</b><strong>{active}</strong></div><div className="topbar-actions"><div className="search-box"><Search /><input placeholder="Search anything..." aria-label="Search" value={query} onChange={(event) => setQuery(event.target.value)} /></div><button className="icon-button notification" aria-label="Notifications"><Bell /><i /></button><div className="topbar-avatar">RK</div></div></header>{active === 'Overview' ? 
+  <Overview 
+  employees={employees} 
+  patients={patients} 
+  medications={medications} 
+  onNavigate={setActive} 
+  /> : active === 'Employees' ?
+  <CrudSection 
+  title="Employees" 
+  eyebrow="TEAM DIRECTORY" description="Manage the people who keep Eden Clinic moving."
+  icon={Users} 
+  columns={['Name', 'Phone number', 'Email', 'Status', 'Actions']}
+  rows={filteredEmployees.map((item) => [item.name, item.phone, item.email, item.status, item.id])} onAdd={() => openAdd('Employees')} onEdit={(id) => openEdit('Employees', id)} onDelete={(id) => remove('Employees', id)} /> : active === 'Patients' ? <CrudSection title="Patients" eyebrow="PATIENT DIRECTORY" description="Track patient visits, diagnoses, and service outcomes." icon={UserRound} columns={['Date', 'Patient name', 'MRN', 'Age', 'Gender', 'Test / Diagnosis', 'Service price', 'Remark', 'Actions']} rows={filteredPatients.map((item) => [dateLabel(item.date), item.name, item.mrn, item.age, item.gender, item.diagnosis, money(item.price), item.remark, item.id])} onAdd={() => openAdd('Patients')} onEdit={(id) => openEdit('Patients', id)} onDelete={(id) => remove('Patients', id)} /> : active === 'Pharmacy' ? <CrudSection title="Pharmacy" eyebrow="MEDICATION INVENTORY" description="Keep medication quantities and pricing current." icon={Pill} columns={['Date', 'Medication name', 'Weight', 'Amount / quantity', 'Item price', 'Actions']} rows={filteredMedication.map((item) => [dateLabel(item.date), item.name, `${item.weight} ${item.unit}`, item.amount, money(item.price), item.id])} onAdd={() => openAdd('Pharmacy')} onEdit={(id) => openEdit('Pharmacy', id)} onDelete={(id) => remove('Pharmacy', id)} /> : active === 'Services' ? <Services medicines={medicines} diagnostics={diagnostics} onAdd={openAdd} onEdit={openEdit} onDelete={remove} /> : null}</section>{modal && <RecordModal type={modal} record={record(modal, editing)} diagnosisOptions={[...diagnosisOptions, ...serviceNames]} medicationOptions={medicines.map((item) => item.name)} onClose={() => setModal(null)} onSave={save} />}</main>
 }
 
-function RecordModal({ type, record, diagnosisOptions, medicationOptions, onClose, onSave }: { type: Exclude<ModalType, null>; record?: Employee | Patient | Medication | { id: number; name: string; weight: string; unit: 'g' | 'mg'; amount: string; price: string } | Diagnostic; diagnosisOptions: string[]; medicationOptions: string[]; onClose: () => void; onSave: (data: Record<string, string>) => void }) { const valuesFromRecord = (record ?? {}) as unknown as Record<string, string>; const defaults: Record<string, string> = type === 'Employees' ? { status: 'Working', phone: '+251 ' } : type === 'Patients' ? { date: new Date().toISOString().slice(0, 10), gender: 'Female', diagnosis: diagnosisOptions[0], remark: 'Pending', price: '0' } : type === 'Pharmacy' ? { date: new Date().toISOString().slice(0, 10), unit: 'mg', price: '0' } : type === 'Medicines' ? { unit: 'mg', price: '0' } : { price: '0' }; const [values, setValues] = useState<Record<string, string>>({ ...defaults, ...valuesFromRecord }); const update = (name: string, value: string) => setValues({ ...values, [name]: value }); const field = (name: string, label: string, kind: 'text' | 'date' | 'number' = 'text', options?: string[]) => <label className="modal-field" key={name}>{label}{name === 'phone' ? <span className="phone-input"><b>+251</b><input required type="tel" inputMode="tel" placeholder="9xx xxx xxxx" value={(values[name] ?? '').replace(/^\+251\s*/, '')} onChange={(e) => update(name, `+251 ${e.target.value.replace(/^\+251\s*/, '')}`)} /></span> : options ? <select value={values[name] ?? options[0]} onChange={(e) => update(name, e.target.value)}>{options.map((option, index) => <option key={`${option}-${index}`}>{option}</option>)}</select> : <input required type={kind} value={values[name] ?? ''} onChange={(e) => update(name, e.target.value)} />}</label>; const fields = type === 'Employees' ? [field('name', 'Name'), field('phone', 'Phone number'), field('email', 'Email'), field('status', 'Status', 'text', ['Working', 'Not working'])] : type === 'Patients' ? [field('date', 'Date', 'date'), field('name', 'Patient name'), field('age', 'Patient age', 'number'), field('gender', 'Gender', 'text', ['Female', 'Male', 'Other']), <label className="modal-field" key="diagnosis">Test / Diagnosis name<select required value={values.diagnosis ?? diagnosisOptions[0]} onChange={(e) => update('diagnosis', e.target.value)}>{diagnosisOptions.map((option, index) => <option key={`${option}-${index}`}>{option}</option>)}</select></label>, field('price', 'Service price (ETB)', 'number'), field('remark', 'Remark', 'text', ['Completed', 'Pending'])] : type === 'Pharmacy' ? [field('date', 'Date', 'date'), field('name', 'Medication name', 'text', medicationOptions.length ? medicationOptions : ['Register a medicine first']), field('weight', 'Weight', 'number'), field('unit', 'Unit', 'text', ['mg', 'g']), field('amount', 'Amount / quantity'), field('price', 'Item price (ETB)', 'number')] : type === 'Medicines' ? [field('name', 'Medication name'), field('weight', 'Weight', 'number'), field('unit', 'Unit', 'text', ['mg', 'g']), field('amount', 'Amount / quantity'), field('price', 'Item price (ETB)', 'number')] : [field('name', 'Test / Diagnosis name'), field('price', 'Service price (ETB)', 'number'), field('description', 'Description')]; return <div className="modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && onClose()}><section className="record-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="modal-header"><div><p className="eyebrow">{record ? 'EDIT RECORD' : 'NEW RECORD'}</p><h2 id="modal-title">{record ? 'Edit' : 'Add'} {type === 'Pharmacy' || type === 'Medicines' ? 'medication' : type === 'Diagnostics' ? 'service' : type.slice(0, -1).toLowerCase()}</h2></div><button className="modal-close" onClick={onClose} aria-label="Close modal"><X /></button></div><form onSubmit={(e) => { e.preventDefault(); onSave(values) }}><div className="modal-fields">{fields}</div><div className="modal-footer"><button type="button" className="secondary-button" onClick={onClose}>Cancel</button><button type="submit" className="primary-button">Save record <ArrowUpRight /></button></div></form></section></div> }
+function RecordModal({ type, record, diagnosisOptions, medicationOptions, onClose, onSave }: { type: Exclude<ModalType, null>; record?: Employee | Patient | Medication | { id: number; name: string; weight: string; unit: 'g' | 'mg'; amount: string; price: string } | Diagnostic; diagnosisOptions: string[]; medicationOptions: string[]; onClose: () => void; onSave: (data: Record<string, string>) => void }) {
+  const valuesFromRecord = (record ?? {}) as unknown as Record<string, string>; const defaults: Record<string, string> = type === 'Employees' ? { status: 'Working', phone: '+251 ' } : type === 'Patients' ? { date: new Date().toISOString().slice(0, 10), gender: 'Female', diagnosis: diagnosisOptions[0], remark: 'Pending', price: '0' } : type === 'Pharmacy' ? { date: new Date().toISOString().slice(0, 10), unit: 'mg', price: '0' } : type === 'Medicines' ? { unit: 'mg', price: '0' } : { price: '0' }; const [values, setValues] = useState<Record<string, string>>({ ...defaults, ...valuesFromRecord }); const update = (name: string, value: string) => setValues({ ...values, [name]: value });
+
+  const field = (name: string, label: string, kind: 'text' | 'date' | 'number' = 'text', options?: string[]) => <label className="modal-field" key={name}>{label}{name === 'phone' ? <span className="phone-input"><b>+251</b><input required type="tel" inputMode="tel" placeholder="9xx xxx xxxx" value={(values[name] ?? '').replace(/^\+251\s*/, '')} onChange={(e) => update(name, `+251 ${e.target.value.replace(/^\+251\s*/, '')}`)} /></span> : options ? <select value={values[name] ?? options[0]} onChange={(e) => update(name, e.target.value)}>{options.map((option, index) => <option key={`${option}-${index}`}>{option}</option>)}</select> : <input required type={kind} value={values[name] ?? ''} onChange={(e) => update(name, e.target.value)} />}</label>;
+
+  const remarkField = (value: string, onChange: (v: string) => void) => (
+    <label className="modal-field modal-field-full" key="remark">
+      Remark
+      <textarea
+        rows={3}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Add any notes about this visit…"
+      />
+    </label>
+  )
+
+  const fields = type === 'Employees' ? [field('name', 'Name'), field('phone', 'Phone number'), field('email', 'Email'), field('status', 'Status', 'text', ['Working', 'Not working'])] : type === 'Patients' ? [field('date', 'Date', 'date'), field('name', 'Patient name'), field('age', 'Patient age', 'number'), field('gender', 'Gender', 'text', ['Female', 'Male', 'Other']), <label className="modal-field" key="diagnosis">Test / Diagnosis name<select required value={values.diagnosis ?? diagnosisOptions[0]} onChange={(e) => update('diagnosis', e.target.value)}>{diagnosisOptions.map((option, index) => <option key={`${option}-${index}`}>{option}</option>)}</select></label>, field('price', 'Service price (ETB)', 'number'),
+
+  remarkField(values.remark ?? '', (value) => update('remark', value))
+
+
+  ]
+    : type === 'Pharmacy' ? [field('date', 'Date', 'date'), field('name', 'Medication name', 'text', medicationOptions.length ? medicationOptions : ['Register a medicine first']), field('weight', 'Weight', 'number'), field('unit', 'Unit', 'text', ['mg', 'g']), field('amount', 'Amount / quantity'), field('price', 'Item price (ETB)', 'number')] : type === 'Medicines' ? [field('name', 'Medication name'), field('weight', 'Weight', 'number'), field('unit', 'Unit', 'text', ['mg', 'g']), field('amount', 'Amount / quantity'), field('price', 'Item price (ETB)', 'number')] : [field('name', 'Test / Diagnosis name'), field('price', 'Service price (ETB)', 'number'), field('description', 'Description')]; return <div className="modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && onClose()}><section className="record-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div className="modal-header"><div><p className="eyebrow">{record ? 'EDIT RECORD' : 'NEW RECORD'}</p><h2 id="modal-title">{record ? 'Edit' : 'Add'} {type === 'Pharmacy' || type === 'Medicines' ? 'medication' : type === 'Diagnostics' ? 'service' : type.slice(0, -1).toLowerCase()}</h2></div><button className="modal-close" onClick={onClose} aria-label="Close modal"><X /></button></div><form onSubmit={(e) => { e.preventDefault(); onSave(values) }}><div className="modal-fields">{fields}</div><div className="modal-footer"><button type="button" className="secondary-button" onClick={onClose}>Cancel</button><button type="submit" className="primary-button">Save record <ArrowUpRight /></button></div></form></section></div>
+
+
+}
 
 function Services({ medicines, diagnostics, onAdd, onEdit, onDelete }: { medicines: { id: number; name: string; weight: string; unit: 'g' | 'mg'; amount: string; price: string }[]; diagnostics: Diagnostic[]; onAdd: (type: ModalType) => void; onEdit: (type: ModalType, id: number) => void; onDelete: (type: ModalType, id: number) => void }) { return <div className="content-inner"><div className="page-intro"><div><p className="eyebrow">SERVICE CATALOG</p><h1>Services</h1><p>Register medicines and tests once, then reuse them across your clinical workflows.</p></div></div><div className="service-grid"><ServiceRegistry title="Medicines" description="Register medication names, weights, quantities, and prices." icon={Pill} columns={['Name', 'Weight', 'Amount / quantity', 'Price']} rows={medicines.map((item) => [item.name, `${item.weight} ${item.unit}`, item.amount, money(item.price)])} onAdd={() => onAdd('Medicines')} onEdit={(id) => onEdit('Medicines', id)} onDelete={(id) => onDelete('Medicines', id)} /><ServiceRegistry title="Test / Diagnostics" description="Register diagnosis and test services for patient visits." icon={Stethoscope} columns={['Name', 'Price', 'Description']} rows={diagnostics.map((item) => [item.name, money(item.price), item.description])} onAdd={() => onAdd('Diagnostics')} onEdit={(id) => onEdit('Diagnostics', id)} onDelete={(id) => onDelete('Diagnostics', id)} /></div></div> }
 function ServiceRegistry({ title, description, icon: Icon, columns, rows, onAdd, onEdit, onDelete }: { title: string; description: string; icon: typeof Activity; columns: string[]; rows: string[][]; onAdd: () => void; onEdit: (id: number) => void; onDelete: (id: number) => void }) { return <section className="panel service-card"><div className="panel-heading"><div><div className="management-icon"><Icon /></div><h2>{title}</h2><p>{description}</p></div><button className="primary-button compact" onClick={onAdd}><Plus /> Add</button></div><div className="table-wrap"><table><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}<th>Actions</th></tr></thead><tbody>{rows.map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}<td><div className="table-actions"><button aria-label={`Edit ${title} ${index + 1}`} onClick={() => onEdit(index + 1)}><Pencil /></button><button aria-label={`Delete ${title} ${index + 1}`} onClick={() => onDelete(index + 1)}><Trash2 /></button></div></td></tr>)}</tbody></table></div></section> }
 
 function Login({ email, password, setEmail, setPassword, onLogin }: { email: string; password: string; setEmail: (value: string) => void; setPassword: (value: string) => void; onLogin: () => void }) { return <main className="login-shell"><section className="login-visual" aria-label="Eden Clinic introduction"><div className="brand brand-light"><img className="clinic-logo" src="/eden_clinic_logo.png" alt="Eden Clinic logo" /><span>eden<span>clinic</span></span></div><div className="visual-copy"><p className="eyebrow">HEALTHCARE OPERATIONS, SIMPLIFIED</p><h1>Care that moves<br /><em>forward.</em></h1><p className="visual-description">One connected workspace for the people, patients, and services that keep Eden Clinic running.</p></div><div className="visual-footer"><ShieldCheck /><span>Private, secure, and built for modern care teams.</span></div></section><section className="login-panel"><div className="login-form-wrap"><div className="mobile-brand brand"><span className="brand-mark"><Activity /></span><span>eden<span>clinic</span></span></div><div className="login-heading"><p className="eyebrow">ADMIN PORTAL</p><h2>Welcome back</h2><p>Sign in to access your Eden Clinic dashboard.</p></div><form onSubmit={(e) => { e.preventDefault(); onLogin() }} className="login-form"><label htmlFor="email">Work email<input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label><label htmlFor="password">Password<input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></label><button className="primary-button" type="submit">Sign in <ArrowUpRight /></button></form></div></section></main> }
 
-function CrudSection({ title, eyebrow, description, icon: Icon, columns, rows, onAdd, onEdit, onDelete }: { title: string; eyebrow: string; description: string; icon: typeof Activity; columns: string[]; rows: (string | number)[][]; onAdd: () => void; onEdit: (id: number) => void; onDelete: (id: number) => void }) { return <div className="content-inner"><div className="page-intro"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p>{description}</p></div><button className="primary-button compact" onClick={onAdd}><Plus /> Add {title.slice(0, -1)}</button></div><section className="panel patients-panel management-panel"><div className="panel-heading"><div><h2>{title} list</h2><p>Create, edit, and remove records from this directory.</p></div><div className="management-icon"><Icon /></div></div><div className="table-wrap"><table><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{rows.map((row) => { const id = Number(row[row.length - 1]); return <tr key={id}>{row.slice(0, -1).map((cell, index) => <td key={`${id}-${index}`}>{index === columns.length - 1 && (title === 'Employees' || title === 'Patients') ? <span className={`status ${['working', 'completed'].includes(String(cell).toLowerCase()) ? 'status-green' : String(cell).toLowerCase() === 'pending' ? 'status-amber' : 'status-red'}`}>{cell}</span> : cell}</td>)}<td><div className="table-actions"><button aria-label={`Edit ${title.slice(0, -1)}`} onClick={() => onEdit(id)}><Pencil /></button><button aria-label={`Delete ${title.slice(0, -1)}`} onClick={() => onDelete(id)}><Trash2 /></button></div></td></tr>})}</tbody></table></div></section></div> }
+function CrudSection({ title, eyebrow, description, icon: Icon, columns, rows, onAdd, onEdit, onDelete }: { title: string; eyebrow: string; description: string; icon: typeof Activity; columns: string[]; rows: (string | number)[][]; onAdd: () => void; onEdit: (id: number) => void; onDelete: (id: number) => void }) { return <div className="content-inner"><div className="page-intro"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p>{description}</p></div><button className="primary-button compact" onClick={onAdd}><Plus /> Add {title.slice(0, -1)}</button></div><section className="panel patients-panel management-panel"><div className="panel-heading"><div><h2>{title} list</h2><p>Create, edit, and remove records from this directory.</p></div><div className="management-icon"><Icon /></div></div><div className="table-wrap"><table><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{rows.map((row) => { const id = Number(row[row.length - 1]); 
+
+return <tr key={id}>
+
+  {row.slice(0, -1).map((cell, index) => {
+  const isStatusColumn =
+    (title === 'Employees' && index === 3) ||
+    (title === 'Patients' && index === 7)
+  return (
+    <td key={`${id}-${index}`}>
+      {isStatusColumn
+        ? <span className={`status ${statusClass(String(cell))}`}>{cell}</span>
+        : cell}
+    </td>
+  )
+})}
+
+<td><div className="table-actions"><button aria-label={`Edit ${title.slice(0, -1)}`} onClick={() => onEdit(id)}><Pencil /></button><button aria-label={`Delete ${title.slice(0, -1)}`} onClick={() => onDelete(id)}><Trash2 /></button></div></td></tr> })}</tbody></table></div></section></div> }
 function Overview({ employees, patients, medications, onNavigate }: { employees: Employee[]; patients: Patient[]; medications: Medication[]; onNavigate: (value: string) => void }) {
   const workingEmployees = employees.filter((item) => item.status === 'Working')
 
-  return <div className="content-inner"><div className="page-intro"><div><p className="eyebrow">MONDAY, OCTOBER 14, 2025</p><h1>Good morning, Rachel</h1><p>Here&apos;s what&apos;s happening across Eden Clinic today.</p></div><button className="date-button"><CalendarDays /> Today <ChevronDown /></button></div><div className="stat-grid"><StatCard label="Total patients" value={String(patients.length)} icon={UserRound} accent="teal" /><StatCard label="Active employees" value={String(workingEmployees.length)} icon={Users} accent="blue" /><StatCard label="Pharmacy items" value={String(medications.length)} icon={Pill} accent="purple" /><StatCard label="Patient services" value={String(new Set(patients.map((patient) => patient.diagnosis)).size)} icon={Stethoscope} accent="orange" /></div><div className="dashboard-grid"><section className="panel appointments-panel"><div className="panel-heading"><div><h2>Employees on duty</h2><p>Team members currently working at Eden Clinic</p></div><button className="text-button" onClick={() => onNavigate('Employees')}>View employees <ArrowUpRight /></button></div><div className="appointment-list">{workingEmployees.map((employee) => <div className="appointment-row" key={employee.id}><div className="avatar avatar-blue">{employee.name.split(' ').map((part) => part[0]).join('')}</div><div className="patient-info"><strong>{employee.name}</strong><span>{employee.email}</span></div><span className="status status-green">Working</span></div>)}</div></section><section className="panel appointments-panel"><div className="panel-heading"><div><h2>Pharmacy inventory</h2><p>Latest medication records and quantities</p></div><button className="text-button" onClick={() => onNavigate('Pharmacy')}>View pharmacy <ArrowUpRight /></button></div><div className="appointment-list">{medications.slice(0, 3).map((medication) => <div className="appointment-row" key={medication.id}><div className="avatar avatar-purple"><Pill /></div><div className="patient-info"><strong>{medication.name}</strong><span>{medication.weight} {medication.unit} · {medication.amount}</span></div><strong className="inventory-price">{money(medication.price)}</strong></div>)}</div></section></div></div>
+  return <div className="content-inner"><div className="page-intro">
+    <div><p className="eyebrow">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()}</p>
+    <h1>
+  {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'}, Eden
+
+</h1>
+    <p>Here&apos;s what&apos;s happening across Eden Clinic today.</p></div><button className="date-button"><CalendarDays /> Today <ChevronDown /></button></div><div className="stat-grid"><StatCard label="Total patients" value={String(patients.length)} icon={UserRound} accent="teal" /><StatCard label="Active employees" value={String(workingEmployees.length)} icon={Users} accent="blue" /><StatCard label="Pharmacy items" value={String(medications.length)} icon={Pill} accent="purple" /><StatCard label="Services" value={String(new Set(patients.map((patient) => patient.diagnosis)).size)} icon={Stethoscope} accent="orange" /></div><div className="dashboard-grid"><section className="panel appointments-panel"><div className="panel-heading"><div><h2>Employees on duty</h2><p>Team members currently working at Eden Clinic</p></div><button className="text-button" onClick={() => onNavigate('Employees')}>View employees <ArrowUpRight /></button></div><div className="appointment-list">{workingEmployees.map((employee) => <div className="appointment-row" key={employee.id}><div className="avatar avatar-blue">{employee.name.split(' ').map((part) => part[0]).join('')}</div><div className="patient-info"><strong>{employee.name}</strong><span>{employee.email}</span></div><span className="status status-green">Working</span></div>)}</div></section><section className="panel appointments-panel"><div className="panel-heading"><div><h2>Pharmacy inventory</h2><p>Latest medication records and quantities</p></div><button className="text-button" onClick={() => onNavigate('Pharmacy')}>View pharmacy <ArrowUpRight /></button></div><div className="appointment-list">{medications.slice(0, 3).map((medication) => <div className="appointment-row" key={medication.id}><div className="avatar avatar-purple"><Pill /></div><div className="patient-info"><strong>{medication.name}</strong><span>{medication.weight} {medication.unit} · {medication.amount}</span></div><strong className="inventory-price">{money(medication.price)}</strong></div>)}</div></section></div></div>
 }
 function StatCard({ label, value, icon: Icon, accent }: { label: string; value: string; icon: typeof Activity; accent: string }) { return <div className="stat-card"><div className={`stat-icon icon-${accent}`}><Icon /></div><div className="stat-copy"><span>{label}</span><strong>{value}</strong></div></div> }
