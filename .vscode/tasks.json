@@ -1,0 +1,17 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Regenerate pnpm lockfile",
+			"type": "shell",
+			"command": "pnpm",
+			"args": [
+				"install",
+				"--lockfile-only",
+				"--ignore-scripts"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}
