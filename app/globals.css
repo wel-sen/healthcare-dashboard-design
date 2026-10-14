@@ -121,11 +121,11 @@ button { cursor: pointer; }
 .primary-button.compact { padding: 10px 14px; font-size: 11px; white-space: nowrap; }
 .primary-button.compact svg { width: 14px; }
 .management-panel { min-width: 0; }
-.management-icon { width: 31px; height: 31px; border-radius: 8px; background: #e2f1ed; color: #187d76; display: grid; place-items: center; }
+.management-icon { width: 31px; height: 31px; border-radius: 8px; background: #e5f0fb; color: #2563a8; display: grid; place-items: center; }
 .management-icon svg { width: 16px; }
 .table-actions { display: flex; align-items: center; gap: 5px; }
 .table-actions button { width: 26px; height: 26px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: #849392; }
-.table-actions button:hover { color: var(--teal); border-color: #9bd3ca; background: #f0f8f6; }
+.table-actions button:hover { color: #2563a8; border-color: #a8c7e4; background: #f1f7fd; }
 .table-actions button:last-child:hover { color: #c2674d; border-color: #e7c3b8; background: #fff7f4; }
 .table-actions svg { width: 13px; }
 .empty-panel { min-height: 260px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; color: #81908f; }
@@ -140,11 +140,20 @@ button { cursor: pointer; }
 .modal-close { display: grid; place-items: center; border: 1px solid var(--line); border-radius: 7px; background: #fff; color: #849392; width: 31px; height: 31px; }
 .modal-close:hover { color: var(--teal); background: #f0f8f6; }
 .modal-close svg { width: 15px; }
+.record-modal form { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 12px; }
+.record-modal form > .modal-fields { width: 100%; }
+.record-modal form > button { display: inline-flex; align-items: center; justify-content: center; min-width: 92px; height: 40px; flex: 0 0 auto; border-radius: 7px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.record-modal form > button:not(.primary-button) { border: 1px solid #d6e1df; background: #fff; color: #506163; padding: 0 16px; }
 .modal-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .modal-field { display: flex; flex-direction: column; gap: 7px; color: #506163; font-size: 11px; font-weight: 700; }
 .modal-field input, .modal-field select { width: 100%; border: 1px solid #d6e1df; border-radius: 7px; padding: 11px 12px; color: var(--ink); background: #fff; outline: none; font-size: 12px; } .phone-input { display: flex; align-items: center; overflow: hidden; border: 1px solid #d6e1df; border-radius: 7px; background: #fff; } .phone-input b { padding: 11px 0 11px 12px; color: #506163; font-size: 12px; font-weight: 700; } .phone-input input { border: 0; border-radius: 0; padding-left: 7px; } .phone-input:focus-within { border-color: #3c9b91; box-shadow: 0 0 0 3px #dff1ee; }
 .modal-field input:focus, .modal-field select:focus { border-color: #3c9b91; box-shadow: 0 0 0 3px #dff1ee; }
-.modal-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 26px; }
-.modal-actions .outline-button { padding: 11px 15px; }
-.modal-actions .primary-button { padding: 11px 15px; }
-@media (max-width: 560px) { .record-modal { padding: 19px; } .modal-fields { grid-template-columns: 1fr; gap: 13px; } .modal-actions { flex-direction: column-reverse; } .modal-actions button { width: 100%; justify-content: center; } }
+  .modal-actions, .modal-footer { display: flex; flex-direction: row; flex-wrap: nowrap; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 28px; padding-top: 20px; border-top: 1px solid #e5edf4; }
+  .modal-actions button, .modal-footer button { display: inline-flex; align-items: center; min-width: 92px; height: 40px; justify-content: center; flex: 0 0 auto; border-radius: 7px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .modal-footer button:first-child { order: 1; }
+  .modal-footer button:last-child { order: 2; }
+  .modal-actions button:not(.primary-button) { order: 1; border: 1px solid #d6e1df; background: #fff; color: #506163; padding: 0 16px; }
+  .modal-actions button:not(.primary-button):hover { border-color: #9bb9d8; background: #f1f7fd; color: #2563a8; }
+  .modal-actions .outline-button { padding: 0 16px; }
+  .modal-actions .primary-button { order: 2; padding: 0 18px; }
+@media (max-width: 560px) { .record-modal { padding: 19px; } .modal-fields { grid-template-columns: 1fr; gap: 13px; } .record-modal form { flex-direction: column; align-items: stretch; } .record-modal form > button { width: 100%; } .modal-actions { flex-direction: column-reverse; } .modal-actions button { width: 100%; justify-content: center; } }
