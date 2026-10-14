@@ -92,6 +92,32 @@ button { cursor: pointer; }
 
 .dark { color-scheme: light; }
 
+/* Blue clinical theme */
+:root { --teal: #2563a8; --teal-dark: #1d4f86; --line: #dfe8f2; --soft: #f4f8fc; }
+.login-visual { background: #173f6b; }
+.login-visual::after { border-color: rgba(176, 211, 243, .22); box-shadow: 0 0 0 60px rgba(176,211,243,.04), 0 0 0 120px rgba(176,211,243,.04); }
+.brand > span:last-child span, .eyebrow, .form-options a, .text-button { color: #2563a8; }
+.brand-light > span:last-child span, .visual-copy h1 em { color: #acd0f2; }
+.brand-mark { background: #e5f0fb; color: #2563a8; }
+.login-visual .eyebrow { color: #a8ccef; }
+.visual-description { color: #d0e0f0; }
+.visual-footer { color: #b8d0e6; }
+.login-form input:focus, .modal-field input:focus, .modal-field select:focus { border-color: #5b8fc5; box-shadow: 0 0 0 3px #e4effa; }
+.password-wrap button { color: #2563a8; }
+.primary-button { background: #2563a8; box-shadow: 0 5px 13px #2563a82e; }
+.primary-button:hover { background: #1d4f86; }
+.login-note svg, .nav-active svg, .nav-active, .workspace-icon, .management-icon { color: #2563a8; }
+.workspace-icon, .management-icon { background: #e5f0fb; }
+.nav-item:hover, .nav-active { background: #edf5fc; }
+.nav-active b { color: #2563a8; background: #d7e8f8; }
+.top-avatar { background: #e2eef9; color: #2563a8; }
+.date-button svg, .outline-button svg { color: #6e9bc8; }
+.icon-teal { background: #e1eef9; color: #2563a8; }
+.panel-icon { color: #8eb5da; }
+.status-blue { background: #e5f0fb; color: #2563a8; border-color: #c6dcf1; }
+.table-actions button:hover { color: #2563a8; border-color: #a8c7e4; background: #f1f7fd; }
+.modal-close:hover { color: #2563a8; background: #f1f7fd; }
+
 /* Directory management controls */
 .primary-button.compact { padding: 10px 14px; font-size: 11px; white-space: nowrap; }
 .primary-button.compact svg { width: 14px; }
