@@ -9,8 +9,8 @@ const dmSans = DM_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'CareFlow Health | Admin Portal',
-  description: 'Healthcare operations dashboard for modern care teams.',
+  title: 'Eden Clinic | Admin Portal',
+  description: 'A dashboard for a medium level clinic',
   generator: 'v0.app',
   icons: {
     icon: [
