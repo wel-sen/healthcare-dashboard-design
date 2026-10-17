@@ -299,7 +299,8 @@ button {
 }
 .app-shell {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: #f8faf9;
 }
 .sidebar {
@@ -310,6 +311,7 @@ button {
   padding: 27px 16px 18px;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
 }
 .sidebar-top {
   padding: 0 12px 34px;
@@ -454,8 +456,8 @@ button {
   font-weight: 800;
 }
 .avatar-teal {
-  background: #d9efea;
-  color: #177c75;
+  background: #cde3fd;
+  color: #2542e0;
 }
 .avatar-green {
   background: #dcefe4;
@@ -476,9 +478,13 @@ button {
 .main-content {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 .topbar {
   height: 72px;
+  flex: 0 0 72px;      /* don't shrink or grow */
   background: #fff;
   border-bottom: 1px solid var(--line);
   display: flex;
@@ -564,6 +570,9 @@ button {
   padding: 35px 36px 60px;
   max-width: 1280px;
   margin: 0 auto;
+  width: 100%;
+  flex: 1;
+  overflow-y: auto;
 }
 .page-intro {
   display: flex;
@@ -690,13 +699,13 @@ button {
   align-items: flex-start;
 }
 .panel-heading h2 {
-  font-size: 14px;
+  font-size: 16px;
   letter-spacing: -0.2px;
   margin: 0 0 6px;
 }
 .panel-heading p {
   color: #94a09f;
-  font-size: 10px;
+  font-size: 12px;
   margin: 0;
 }
 .text-button {
@@ -864,19 +873,19 @@ table {
   text-align: left;
 }
 th {
-  color: #a0acab;
-  font-size: 9px;
+  color: #2853ba;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.8px;
   background: #fafcfb;
-  padding: 11px 22px;
+  padding: 13px 22px;
 }
 td {
   color: #728080;
-  font-size: 10px;
+  font-size: 12px;
   border-top: 1px solid #eff3f2;
-  padding: 11px 22px;
+  padding: 13px 22px;
 }
 .table-person {
   display: flex;
@@ -1173,8 +1182,8 @@ td {
   gap: 5px;
 }
 .table-actions button {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
   border: 1px solid var(--line);
@@ -1193,7 +1202,9 @@ td {
   background: #fff7f4;
 }
 .table-actions svg {
-  width: 13px;
+  width: 14px;
+  height: 14px;
+
 }
 .empty-panel {
   min-height: 260px;
@@ -1497,3 +1508,237 @@ td {
     gap: 16px;
   }
 }
+
+.page-intro-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.table-search {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 9px 12px;
+  font-size: 12px;
+  color: var(--ink);
+  background: #fff;
+  outline: none;
+  min-width: 200px;
+}
+
+.table-search:focus {
+  border-color: #5b8fc5;
+  box-shadow: 0 0 0 3px #e4effa;
+}
+
+/* === Scrollable table inside a fixed-height panel === */
+
+/* 1. Make content-inner a flex column with a fixed height */
+.content-inner {
+  padding: 35px 36px 60px;
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;   /* prevent content-inner itself from scrolling */
+  min-height: 0;      /* required for flex children to shrink/scroll */
+}
+
+/* 2. The panel takes the remaining vertical space */
+.management-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  margin-bottom: 0;
+}
+
+/* 3. The panel body (table wrapper) is the only thing that scrolls */
+.management-panel .table-wrap {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  min-height: 0;
+  margin: 0 -22px;    /* keep the edge-bleed look from earlier */
+  padding-bottom: 4px;
+}
+
+/* 4. The page intro stays put at the top */
+.content-inner .page-intro {
+  flex: 0 0 auto;
+  margin-bottom: 27px;
+}
+
+/* 5. Keep the panel heading pinned above the scroll */
+.management-panel .panel-heading {
+  flex: 0 0 auto;
+}
+
+/* Sticky table headers */
+.table-wrap table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #1d8451;   /* solid — prevents rows showing through */
+  box-shadow: inset 0 -1px 0 var(--line);  /* bottom border that scrolls with the header */
+}
+
+/* Table header row — custom background */
+.table-wrap table thead th {
+  background: #eef4fc;                /* ← change to whatever you want */
+  color: #1d4f86;                     /* optional: tint the header text to match */
+  border-bottom: 1px solid #d4e3f3;   /* optional: slightly stronger divider */
+}
+
+/* More space between Service card heading and table */
+.service-card .panel-heading {
+  margin-bottom: 18px;
+  padding-bottom: 4px;
+}
+
+/* Optional: a bit more internal padding inside each service card */
+.service-card {
+  padding: 22px 22px 18px;
+}
+
+/* === Services page: scrollable body with sticky headers === */
+
+/* === Services page: scroll the whole body as one region === */
+
+/* Content-inner is the scroll container (matches other pages) */
+.services-page .content-inner,
+.content-inner:has(.service-grid) {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* Let the service grid stack naturally — no forced scroll */
+.service-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  /* no flex: 1, no overflow — the parent scrolls */
+}
+
+/* Cards size to their content */
+.service-card {
+  display: flex;
+  flex-direction: column;
+  /* no max-height, no overflow — natural height */
+}
+
+/* Let the table fill the card width but not scroll internally */
+.service-card .table-wrap {
+  overflow: visible;
+  flex: none;
+}
+
+/* Topbar avatar wrapper (positions the dropdown) */
+.topbar-avatar-wrap {
+  position: relative;
+}
+
+/* Filled avatar button */
+.topbar-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #cde3fd;      /* solid blue fill */
+  color: #2542e0;            /* white initials */
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  border: 0;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 0.15s ease;
+}
+
+.topbar-avatar:hover {
+  background: #a6cdf7;
+}
+
+/* Dropdown menu */
+.avatar-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 220px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(24, 50, 56, 0.12);
+  padding: 8px;
+  z-index: 30;
+  animation: avatarMenuIn 0.12s ease-out;
+}
+
+@keyframes avatarMenuIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.avatar-menu-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 12px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 6px;
+}
+
+.avatar-menu-header .avatar {
+  width: 34px;
+  height: 34px;
+  font-size: 11px;
+}
+
+.avatar-menu-header strong {
+  display: block;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.avatar-menu-header span {
+  display: block;
+  font-size: 10px;
+  color: #8a9898;
+  margin-top: 2px;
+}
+
+.avatar-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #506163;
+  cursor: pointer;
+  text-align: left;
+}
+
+.avatar-menu-item:hover {
+  background: #f1f7fd;
+  color: #2563a8;
+}
+
+.avatar-menu-item svg {
+  width: 15px;
+  height: 15px;
+}
+

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { ChevronUp, ChevronsUpDown } from "lucide-react";
 import {
   Activity,
   ArrowUpRight,
@@ -31,6 +32,7 @@ type Employee = {
   phone: string;
   email: string;
   status: "Working" | "Not working";
+  joined_on: string;
 };
 type Patient = {
   id: number;
@@ -85,7 +87,7 @@ const diagnosisOptions = [
   "Ultrasound",
   "X-ray",
   "Physiotherapy",
-];
+]
 const seedEmployees: Employee[] = [
   {
     id: 1,
@@ -179,7 +181,7 @@ const seedDiagnostics: Diagnostic[] = diagnosisOptions
     id: index + 1,
     name,
     price: String([95, 180, 145, 70, 40][index]),
-    description: "Available Eden Clinic service",
+    description: "Available Eden Medium Clinic service",
   }));
 const seedMedicines = seedMedication.map(
   ({ id, name, weight, unit, amount, price }) => ({
@@ -191,6 +193,17 @@ const seedMedicines = seedMedication.map(
     price,
   }),
 );
+
+const singularLabel = (title: string) => {
+  switch (title) {
+    case 'Employees':  return 'Employee'
+    case 'Patients':   return 'Patient'
+    case 'Pharmacy':   return 'Record'   // "Add Record" reads better than "Add Pharmacy"
+    case 'Medicines':  return 'Medicine'
+    case 'Diagnostics':return 'Service'
+    default:           return title
+  }
+}
 
 const money = (value: string | null | undefined) =>
   `ETB ${Number((value ?? "").replace(/[^0-9.]/g, "") || 0).toFixed(2)}`;
@@ -220,6 +233,8 @@ export default function Page() {
     [modal, setModal] = useState<ModalType>(null),
     [editing, setEditing] = useState<number | null>(null);
 
+    const [avatarMenu, setAvatarMenu] = useState(false);
+
     const [deleteTarget, setDeleteTarget] = useState<{ type: ModalType; id: number } | null>(null)
 
   // Create the Supabase client once
@@ -242,6 +257,15 @@ export default function Page() {
 setIsLoggedIn(!!user)
     });
   }, []);
+
+  useEffect(() => {
+  if (!avatarMenu) return;
+  const close = () => setAvatarMenu(false);
+  window.addEventListener("click", close);
+  return () => window.removeEventListener("click", close);
+}, [avatarMenu]);
+
+  
 
   // Auto sign-out after 20 minutes of inactivity
 useEffect(() => {
@@ -272,35 +296,27 @@ useEffect(() => {
 
   // Load data whenever the user is logged in
   useEffect(() => {
-    if (!isLoggedIn) return;
+  if (!isLoggedIn) return;
 
-    const load = async () => {
-      const [emp, pat, med] = await Promise.all([
-        supabase.from("employees").select("*"),
-        supabase.from("patients").select("*"),
-        supabase.from("medications").select("*"),
-      ]);
+  const load = async () => {
+    const [emp, pat, med, meds, diags] = await Promise.all([
+      supabase.from("employees").select("*"),
+      supabase.from("patients").select("*"),
+      supabase.from("medications").select("*"),
+      supabase.from("medicines").select("*"),
+      supabase.from("diagnostics").select("*"),
+    ]);
 
-      if (emp.data) setEmployees(emp.data as Employee[]);
-      if (pat.data) setPatients(pat.data as Patient[]);
-      if (med.data) {
-        const rows = med.data as Medication[];
-        setMedications(rows);
-        setMedicines(
-          rows.map(({ id, name, weight, unit, amount, price }) => ({
-            id,
-            name,
-            weight,
-            unit,
-            amount,
-            price,
-          })),
-        );
-      }
-    };
+    if (emp.data) setEmployees(emp.data as Employee[]);
+    if (pat.data) setPatients(pat.data as Patient[]);
+    if (med.data) setMedications(med.data as Medication[]);
+    if (meds.data) setMedicines(meds.data as typeof medicines);
+    if (diags.data) setDiagnostics(diags.data as Diagnostic[]);
+  };
 
-    load();
-  }, [isLoggedIn]);
+  load();
+}, [isLoggedIn]);
+
 
   if (isLoggedIn === null) {
   return (
@@ -392,31 +408,24 @@ if (!isLoggedIn) return <Login email={email} password={password} setEmail={setEm
 
     // Medicines and Diagnostics still live only in local state for now
     if (modal === "Medicines") {
-      if (editing)
-        setMedicines(
-          medicines.map((item) =>
-            item.id === editing
-              ? ({ ...item, ...data, id } as typeof item)
-              : item,
-          ),
-        );
-      else
-        setMedicines([
-          ...medicines,
-          { ...data, id } as (typeof medicines)[number],
-        ]);
-    }
-    if (modal === "Diagnostics") {
-      if (editing)
-        setDiagnostics(
-          diagnostics.map((item) =>
-            item.id === editing
-              ? ({ ...item, ...data, id } as Diagnostic)
-              : item,
-          ),
-        );
-      else setDiagnostics([...diagnostics, { ...data, id } as Diagnostic]);
-    }
+  if (editing) {
+    await supabase.from("medicines").update(data).eq("id", editing);
+  } else {
+    await supabase.from("medicines").insert(data);
+  }
+  const { data: fresh } = await supabase.from("medicines").select("*");
+  if (fresh) setMedicines(fresh as typeof medicines);
+}
+
+if (modal === "Diagnostics") {
+  if (editing) {
+    await supabase.from("diagnostics").update(data).eq("id", editing);
+  } else {
+    await supabase.from("diagnostics").insert(data);
+  }
+  const { data: fresh } = await supabase.from("diagnostics").select("*");
+  if (fresh) setDiagnostics(fresh as Diagnostic[]);
+}
 
     setModal(null);
   };
@@ -435,10 +444,14 @@ if (!isLoggedIn) return <Login email={email} password={password} setEmail={setEm
       setMedications(medications.filter((i) => i.id !== id));
       setMedicines(medicines.filter((i) => i.id !== id));
     }
-    if (type === "Medicines")
-      setMedicines(medicines.filter((i) => i.id !== id));
-    if (type === "Diagnostics")
-      setDiagnostics(diagnostics.filter((i) => i.id !== id));
+    if (type === "Medicines") {
+  await supabase.from("medicines").delete().eq("id", id);
+  setMedicines(medicines.filter((i) => i.id !== id));
+}
+if (type === "Diagnostics") {
+  await supabase.from("diagnostics").delete().eq("id", id);
+  setDiagnostics(diagnostics.filter((i) => i.id !== id));
+}
   };
 
   const record = (type: ModalType, id: number | null) =>
@@ -470,7 +483,7 @@ if (!isLoggedIn) return <Login email={email} password={password} setEmail={setEm
               alt="Eden Clinic logo"
             />
             <span>
-              eden<span>clinic</span>
+              Eden<span> clinic</span>
             </span>
           </div>
           <button
@@ -484,7 +497,7 @@ if (!isLoggedIn) return <Login email={email} password={password} setEmail={setEm
         <div className="workspace">
           <div className="workspace-icon">EC</div>
           <div>
-            <strong>Eden Clinic</strong>
+            <strong>Eden Medium Clinic</strong>
             <span>Admin workspace</span>
           </div>
           <ChevronDown />
@@ -516,7 +529,7 @@ if (!isLoggedIn) return <Login email={email} password={password} setEmail={setEm
             <span>Settings</span>
           </button>
           <div className="user-card">
-            <div className="avatar avatar-teal">DR</div>
+            <div className="avatar avatar-teal">EA</div>
             <div>
               <strong>Eden Agena</strong>
               <span>Administrator</span>
@@ -565,7 +578,47 @@ if (!isLoggedIn) return <Login email={email} password={password} setEmail={setEm
               <Bell />
               <i />
             </button>
-            <div className="topbar-avatar">EA</div>
+
+<div className="topbar-avatar-wrap">
+  <button
+    className="topbar-avatar"
+    onClick={(e) => {
+      e.stopPropagation();
+      setAvatarMenu((v) => !v);
+    }}
+    aria-label="Account menu"
+    aria-haspopup="menu"
+    aria-expanded={avatarMenu}
+  >
+    EA
+  </button>
+
+  {avatarMenu && (
+    <div
+      className="avatar-menu"
+      role="menu"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="avatar-menu-header">
+        <div className="avatar avatar-teal">EA</div>
+        <div>
+          <strong>Eden Agena</strong>
+          <span>Administrator</span>
+        </div>
+      </div>
+      <button
+        className="avatar-menu-item"
+        onClick={async () => {
+          await supabase.auth.signOut();
+          setIsLoggedIn(false);
+        }}
+      >
+        <LogOut /> Sign out
+      </button>
+    </div>
+  )}
+</div>            
+
           </div>
         </header>
         {active === "Overview" ? (
@@ -579,20 +632,24 @@ if (!isLoggedIn) return <Login email={email} password={password} setEmail={setEm
           <CrudSection
             title="Employees"
             eyebrow="TEAM DIRECTORY"
-            description="Manage the people who keep Eden Clinic moving."
+            description="Manage the people who keep Eden Medium Clinic moving."
             icon={Users}
-            columns={["Name", "Phone number", "Email", "Status", "Actions"]}
-            rows={filteredEmployees.map((item) => [
+            columns={[ "Joined", "Name", "Phone number", "Email", "Status", "Actions"]}
+            rows={filteredEmployees.map((item) => [       
+              dateLabel(item.joined_on),
               item.name,
               item.phone,
               item.email,
-              item.status,
+              item.status,      
               item.id,
+              
             ])}
             onAdd={() => openAdd("Employees")}
             onEdit={(id) => openEdit("Employees", id)}
             onDelete={(id) => remove("Employees", id)}
             onRequestDelete={(id) => setDeleteTarget({ type: 'Employees', id })}
+            searchValue={query}
+            onSearchChange={setQuery}
           />
         ) : active === "Patients" ? (
           <CrudSection
@@ -612,7 +669,7 @@ if (!isLoggedIn) return <Login email={email} password={password} setEmail={setEm
               "Actions",
             ]}
             rows={filteredPatients.map((item) => [
-              dateLabel(item.date),
+              item.date,
               item.name,
               item.mrn,
               item.age,
@@ -626,6 +683,8 @@ if (!isLoggedIn) return <Login email={email} password={password} setEmail={setEm
             onEdit={(id) => openEdit("Patients", id)}
             onDelete={(id) => remove("Patients", id)}
             onRequestDelete={(id) => setDeleteTarget({ type: 'Patients', id })}
+            searchValue={query}
+            onSearchChange={setQuery}
           />
         ) : active === "Pharmacy" ? (
           <CrudSection
@@ -642,7 +701,7 @@ if (!isLoggedIn) return <Login email={email} password={password} setEmail={setEm
               "Actions",
             ]}
             rows={filteredMedication.map((item) => [
-              dateLabel(item.date),
+              item.date,
               item.name,
               `${item.weight} ${item.unit}`,
               item.amount,
@@ -653,6 +712,8 @@ if (!isLoggedIn) return <Login email={email} password={password} setEmail={setEm
             onEdit={(id) => openEdit("Pharmacy", id)}
             onDelete={(id) => remove("Pharmacy", id)}
             onRequestDelete={(id) => setDeleteTarget({ type: 'Pharmacy', id })}
+            searchValue={query}
+            onSearchChange={setQuery}
           />
         ) : active === "Services" ? (
           <Services
@@ -661,6 +722,7 @@ if (!isLoggedIn) return <Login email={email} password={password} setEmail={setEm
             onAdd={openAdd}
             onEdit={openEdit}
             onDelete={remove}
+            onRequestDelete={(type, id) => setDeleteTarget({ type, id})}
           />
         ) : null}
       </section>
@@ -753,7 +815,7 @@ function RecordModal({
   const valuesFromRecord = (record ?? {}) as unknown as Record<string, string>;
   const defaults: Record<string, string> =
     type === "Employees"
-      ? { status: "Working", phone: "+251 " }
+      ? { status: 'Working', phone: '+251 ', joined_on: new Date().toISOString().slice(0, 10) }
       : type === "Patients"
         ? {
             date: new Date().toISOString().slice(0, 10),
@@ -839,7 +901,7 @@ function RecordModal({
           field("name", "Name"),
           field("phone", "Phone number"),
           field("email", "Email"),
-          field("status", "Status", "text", ["Working", "Not working"]),
+          field('status', 'Status', 'text', ['Working', 'Not working']), field('joined_on', 'Joined date', 'date'),
         ]
       : type === "Patients"
         ? [
@@ -911,11 +973,7 @@ function RecordModal({
             <p className="eyebrow">{record ? "EDIT RECORD" : "NEW RECORD"}</p>
             <h2 id="modal-title">
               {record ? "Edit" : "Add"}{" "}
-              {type === "Pharmacy" || type === "Medicines"
-                ? "medication"
-                : type === "Diagnostics"
-                  ? "service"
-                  : type.slice(0, -1).toLowerCase()}
+              {singularLabel(type).toLowerCase()}
             </h2>
           </div>
           <button
@@ -957,6 +1015,7 @@ function Services({
   onAdd,
   onEdit,
   onDelete,
+  onRequestDelete,
 }: {
   medicines: {
     id: number;
@@ -970,9 +1029,10 @@ function Services({
   onAdd: (type: ModalType) => void;
   onEdit: (type: ModalType, id: number) => void;
   onDelete: (type: ModalType, id: number) => void;
+  onRequestDelete: (type: ModalType, id: number) => void;
 }) {
   return (
-    <div className="content-inner">
+    <div className="content-inner services-page">
       <div className="page-intro">
         <div>
           <p className="eyebrow">SERVICE CATALOG</p>
@@ -990,28 +1050,32 @@ function Services({
           icon={Pill}
           columns={["Name", "Weight", "Amount / quantity", "Price"]}
           rows={medicines.map((item) => [
-            item.name,
-            `${item.weight} ${item.unit}`,
-            item.amount,
-            money(item.price),
-          ])}
+  item.name,
+  `${item.weight} ${item.unit}`,
+  item.amount,
+  money(item.price),
+  item.id,
+])}
           onAdd={() => onAdd("Medicines")}
           onEdit={(id) => onEdit("Medicines", id)}
           onDelete={(id) => onDelete("Medicines", id)}
+          onRequestDelete={(id) => onRequestDelete("Medicines", id)}
         />
         <ServiceRegistry
           title="Test / Diagnostics"
           description="Register diagnosis and test services for patient visits."
           icon={Stethoscope}
-          columns={["Name", "Price", "Description"]}
+          columns={["Name", "Price", "Description"]} 
           rows={diagnostics.map((item) => [
-            item.name,
-            money(item.price),
-            item.description,
-          ])}
+  item.name,
+  money(item.price),
+  item.description,
+  item.id,
+])}
           onAdd={() => onAdd("Diagnostics")}
           onEdit={(id) => onEdit("Diagnostics", id)}
           onDelete={(id) => onDelete("Diagnostics", id)}
+          onRequestDelete={(id) => onRequestDelete("Diagnostics", id)}
         />
       </div>
     </div>
@@ -1026,16 +1090,17 @@ function ServiceRegistry({
   onAdd,
   onEdit,
   onDelete,
+  onRequestDelete,
 }: {
   title: string;
   description: string;
   icon: typeof Activity;
   columns: string[];
-  rows: string[][];
+  rows: (string | number)[][];
   onAdd: () => void;
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;
-  // onRequestDelete?: (id: number) => void
+  onRequestDelete?: (id: number) => void
 }) {
   return (
     <section className="panel service-card">
@@ -1062,29 +1127,32 @@ function ServiceRegistry({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
-              <tr key={index}>
-                {row.map((cell, cellIndex) => (
-                  <td key={cellIndex}>{cell}</td>
-                ))}
+            {rows.map((row, index) => {
+  const id = Number(row[row.length - 1])
+  return (
+    <tr key={id}>
+      {row.slice(0, -1).map((cell, cellIndex) => (
+        <td key={cellIndex}>{cell}</td>
+      ))}
                 <td>
                   <div className="table-actions">
                     <button
                       aria-label={`Edit ${title} ${index + 1}`}
-                      onClick={() => onEdit(index + 1)}
+                      onClick={() => onEdit(id)}
                     >
                       <Pencil />
                     </button>
                     <button
                       aria-label={`Delete ${title} ${index + 1}`}
-                      onClick={() => onDelete(index + 1)}
+                      onClick={() => onRequestDelete ? onRequestDelete(id) : onDelete(id)}
                     >
                       <Trash2 />
                     </button>
                   </div>
                 </td>
               </tr>
-            ))}
+            )}
+          )}
           </tbody>
         </table>
       </div>
@@ -1127,7 +1195,7 @@ function Login({
           </h1>
           <p className="visual-description">
             One connected workspace for the people, patients, and services that
-            keep Eden Clinic running.
+            keep Eden Medium Clinic running.
           </p>
         </div>
         <div className="visual-footer">
@@ -1148,7 +1216,7 @@ function Login({
           <div className="login-heading">
             <p className="eyebrow">ADMIN PORTAL</p>
             <h2>Welcome back</h2>
-            <p>Sign in to access your Eden Clinic dashboard.</p>
+            <p>Sign in to access your Eden Medium Clinic dashboard.</p>
           </div>
           <form
             onSubmit={(e) => {
@@ -1198,6 +1266,8 @@ function CrudSection({
   onEdit,
   onDelete,
   onRequestDelete,
+  searchValue, // New
+  onSearchChange // New
 }: {
   title: string;
   eyebrow: string;
@@ -1209,17 +1279,74 @@ function CrudSection({
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;
   onRequestDelete?: (id: number) => void
+  searchValue?: string // New
+  onSearchChange?: (value: string) => void // New
+  
 }) {
-  const singularLabel = (title: string) => {
-  switch (title) {
-    case 'Employees':  return 'Employee'
-    case 'Patients':   return 'Patient'
-    case 'Pharmacy':   return 'Record'   // "Add Record" reads better than "Add Pharmacy"
-    case 'Medicines':  return 'Medicine'
-    case 'Diagnostics':return 'Service'
-    default:           return title
-  }
+
+  const [sortCol, setSortCol] = useState<number | null>(0) //New
+const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc') //New
+
+  const displayCell = (cell: string | number, index: number) => {
+  if (title === "Pharmacy" && index === 0) return dateLabel(String(cell))
+  if (title === "Patients" && index === 0) return dateLabel(String(cell))
+  if (title === "Employees" && index === 0) return dateLabel(String(cell))
+  return cell
 }
+
+    // Determine if a cell looks like a date
+  const looksLikeDate = (v: string | number) => {
+  const s = String(v)
+  // ISO: 2025-10-14   |   Slash: 10/14/2025   |   Formatted: Oct 14, 2025   |   With dash: — (skip)
+  if (s === '—') return false
+  return (
+    /^\d{4}-\d{2}-\d{2}/.test(s) ||
+    /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s) ||
+    /^[A-Z][a-z]{2} \d{1,2}, \d{4}$/.test(s)
+  )
+}
+
+  // Determine if a cell is numeric
+  const looksLikeNumber = (v: string | number) => {
+    const s = String(v).replace(/[^0-9.\-]/g, '')
+    return s !== '' && !isNaN(Number(s))
+  }
+
+  // Sort the rows
+  const sortedRows =
+    sortCol === null
+      ? rows
+      : [...rows].sort((a, b) => {
+          const av = a[sortCol]
+          const bv = b[sortCol]
+
+          let cmp = 0
+
+          if (looksLikeDate(av) && looksLikeDate(bv)) {
+            const ad = new Date(String(av)).getTime()
+            const bd = new Date(String(bv)).getTime()
+            cmp = ad - bd
+          } else if (looksLikeNumber(av) && looksLikeNumber(bv)) {
+            const an = Number(String(av).replace(/[^0-9.\-]/g, ''))
+            const bn = Number(String(bv).replace(/[^0-9.\-]/g, ''))
+            cmp = an - bn
+          } else {
+            cmp = String(av).localeCompare(String(bv), undefined, { numeric: true })
+          }
+
+          return sortDir === 'asc' ? cmp : -cmp
+        })
+
+  // Toggle sort when a header is clicked
+  const handleSort = (index: number) => {
+    if (sortCol === index) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortCol(index)
+      setSortDir('asc')
+    }
+  }
+  
   return (
     <div className="content-inner">
       <div className="page-intro">
@@ -1228,7 +1355,18 @@ function CrudSection({
           <h1>{title}</h1>
           <p>{description}</p>
         </div>
+        <div className="page-intro-actions">
+    {onSearchChange && (
+      <input
+        type="search"
+        placeholder={`Search ${title.toLowerCase()}…`}
+        value={searchValue ?? ''}
+        onChange={(e) => onSearchChange(e.target.value)}
+        className="table-search"
+      />
+    )}
        <button className="primary-button compact" onClick={onAdd}><Plus /> Add {singularLabel(title)}</button>
+      </div>
       </div>
       <section className="panel patients-panel management-panel">
         <div className="panel-heading">
@@ -1243,52 +1381,76 @@ function CrudSection({
         <div className="table-wrap">
           <table>
             <thead>
-              <tr>
-                {columns.map((column) => (
-                  <th key={column}>{column}</th>
-                ))}
-              </tr>
-            </thead>
+  <tr>
+    {columns.map((column, index) => {
+      const isActions = column === 'Actions'
+      const isActive = sortCol === index
+      return (
+        <th
+          key={column}
+          onClick={isActions ? undefined : () => handleSort(index)}
+          style={{ cursor: isActions ? 'default' : 'pointer', userSelect: 'none' }}
+          aria-sort={isActive ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+        >
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            {column}
+            {!isActions && (
+              isActive ? (
+    sortDir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
+  ) : (
+    <ChevronsUpDown size={12} style={{ opacity: 0.35 }} />
+  )
+            )}
+          </span>
+        </th>
+      )
+    })}
+  </tr>
+</thead>
             <tbody>
-              {rows.map((row) => {
-                const id = Number(row[row.length - 1]);
+  {sortedRows.length === 0 ? (
+    <tr>
+      <td colSpan={columns.length} style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8', fontSize: 12 }}>
+        {searchValue ? `No results for "${searchValue}"` : 'No records yet'}
+      </td>
+    </tr>
+  ) : (
+    sortedRows.map((row) => {
+      const id = Number(row[row.length - 1])
+      return (
+        <tr key={id}>
+          {row.slice(0, -1).map((cell, index) => {
+  const isStatusColumn =
+    (title === 'Employees' && index === 4) ||
+    (title === 'Patients' && index === 7)
+  return (
+    <td key={`${id}-${index}`}>
+  {isStatusColumn
+    ? <span className={`status ${statusClass(String(cell))}`}>{cell}</span>
+    : displayCell(cell, index)}
+</td>
+  )
+})}
 
-                return (
-                  <tr key={id}>
-                    {row.slice(0, -1).map((cell, index) => {
-                      const isStatusColumn =
-                        (title === "Employees" && index === 3) ||
-                        (title === "Patients" && index === 7);
-                      return (
-                        <td key={`${id}-${index}`}>
-                          {isStatusColumn ? (
-                            <span
-                              className={`status ${statusClass(String(cell))}`}
-                            >
-                              {cell}
-                            </span>
-                          ) : (
-                            cell
-                          )}
-                        </td>
-                      );
-                    })}
 
-                    <td>
-                      <div className="table-actions">
-                        <button
-                          aria-label={`Edit ${title.slice(0, -1)}`}
-                          onClick={() => onEdit(id)}
-                        >
-                          <Pencil />
-                        </button>
-                        <button aria-label={`Delete ${title.slice(0, -1)}`} onClick={() => onRequestDelete ? onRequestDelete(id) : onDelete(id)}><Trash2 /></button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
+          <td>
+  <div className="table-actions">
+    <button aria-label={`Edit ${title} ${id}`} onClick={() => onEdit(id)}>
+      <Pencil />
+    </button>
+    <button
+  aria-label={`Delete ${title} ${id}`}
+  onClick={() => (onRequestDelete ? onRequestDelete(id) : onDelete(id))}
+>
+  <Trash2 />
+</button>
+  </div>
+</td>
+        </tr>
+      )
+    })
+  )}
+</tbody>
           </table>
         </div>
       </section>
@@ -1332,7 +1494,7 @@ function Overview({
                 : "Good evening"}
             , Eden
           </h1>
-          <p>Here&apos;s what&apos;s happening across Eden Clinic today.</p>
+          <p>Here&apos;s what&apos;s happening across Eden Medium Clinic today.</p>
         </div>
         <button className="date-button">
           <CalendarDays /> Today <ChevronDown />
@@ -1371,7 +1533,7 @@ function Overview({
           <div className="panel-heading">
             <div>
               <h2>Employees on duty</h2>
-              <p>Team members currently working at Eden Clinic</p>
+              <p>Team members currently working at Eden Medium Clinic</p>
             </div>
             <button
               className="text-button"
