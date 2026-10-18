@@ -1,15 +1,15 @@
 import { Analytics } from '@vercel/analytics/next'
-import { DM_Sans } from 'next/font/google'
+import { Plus_Jakarta_Sans } from 'next/font/google'
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
-const dmSans = DM_Sans({
+const dmSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
   variable: '--font-dm-sans',
 })
 
 export const metadata: Metadata = {
-  title: 'Eden Clinic | Admin Portal',
+  title: 'Eden Medium Clinic | Admin Portal',
   description: 'A dashboard for a medium level clinic',
   generator: 'v0.app',
   icons: {

@@ -874,7 +874,7 @@ table {
 }
 th {
   color: #2853ba;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.8px;
@@ -883,7 +883,7 @@ th {
 }
 td {
   color: #728080;
-  font-size: 12px;
+  font-size: 11px;
   border-top: 1px solid #eff3f2;
   padding: 13px 22px;
 }
@@ -1202,8 +1202,8 @@ td {
   background: #fff7f4;
 }
 .table-actions svg {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
 
 }
 .empty-panel {
@@ -1633,8 +1633,9 @@ td {
 
 /* Let the table fill the card width but not scroll internally */
 .service-card .table-wrap {
-  overflow: visible;
-  flex: none;
+  max-height: 420px;
+  overflow-y: auto;
+  overflow-x: auto;
 }
 
 /* Topbar avatar wrapper (positions the dropdown) */
@@ -1742,3 +1743,335 @@ td {
   height: 15px;
 }
 
+/* Zebra striping for table rows */
+.table-wrap table tbody tr:nth-child(even) {
+  background: #f5f9fc;
+}
+
+/* Subtle hover on any row */
+.table-wrap table tbody tr:hover {
+  background: #f8f9fb;
+}
+
+/* Service page CTAs */
+.service-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.service-tab {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.service-tab:hover {
+  border-color: #a8c7e4;
+  background: #f7fafd;
+}
+
+.service-tab svg {
+  width: 22px;
+  height: 22px;
+  color: #2563a8;
+  flex-shrink: 0;
+}
+
+.service-tab span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.service-tab strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.service-tab small {
+  font-size: 11px;
+  color: #7a8a89;
+}
+
+.service-tab-active {
+  border-color: #2563a8;
+  background: #eef4fc;
+  box-shadow: 0 0 0 3px #e4effa;
+}
+
+.service-tab-active svg {
+  color: #2563a8;
+}
+
+.service-tab-active strong {
+  color: #1d4f86;
+}
+
+@media (max-width: 680px) {
+  .service-tabs {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+/* fsdfsd */
+
+.subpage-header {
+  margin-bottom: 24px;
+}
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #ffffff;
+  color: #506163;
+  padding: 9px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.back-button:hover {
+  border-color: #a8c7e4;
+  background: #f1f7fd;
+  color: #2563a8;
+}
+
+/* Multi-diagnosis field */
+.diagnosis-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.diagnosis-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.diagnosis-row select {
+  flex: 1;
+}
+
+.diagnosis-add,
+.diagnosis-remove {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border-radius: 7px;
+  border: 1px solid #d6e1df;
+  background: #ffffff;
+  color: #2563a8;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.15s ease;
+}
+
+.diagnosis-add:hover {
+  border-color: #2563a8;
+  background: #eef4fc;
+}
+
+.diagnosis-remove {
+  color: #c2674d;
+}
+
+.diagnosis-remove:hover {
+  border-color: #c2674d;
+  background: #fff7f4;
+}
+
+.diagnosis-chip {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #e1e9f3;
+  color: #1d4f86;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.table-name {
+  font-weight: 700;
+  color: #183238;
+}
+
+/* Modal tabs */
+.modal-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 4px;
+  background: #f4f7f8;
+  border-radius: 8px;
+  width: fit-content;
+}
+
+.modal-tab {
+  padding: 8px 18px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: #7a8a89;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.modal-tab:hover {
+  color: #2563a8;
+}
+
+.modal-tab-active {
+  background: #ffffff;
+  color: #2563a8;
+  box-shadow: 0 1px 3px rgba(24, 50, 56, 0.08);
+}
+
+/* Optional field hint */
+.optional-hint {
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* Toast notification */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  min-width: 280px;
+  max-width: 380px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(24, 50, 56, 0.14);
+  font-size: 13px;
+  color: var(--ink);
+  z-index: 100;
+  overflow: hidden;
+  animation: toastIn 0.2s ease-out;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.toast-icon {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.toast-success .toast-icon {
+  background: #1a7f4b;
+}
+
+.toast-error .toast-icon {
+  background: #b02a2a;
+}
+
+.toast-info .toast-icon {
+  background: #2563a8;
+}
+
+.toast-message {
+  flex: 1;
+  font-weight: 500;
+}
+
+.toast-close {
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toast-close:hover {
+  color: #506163;
+}
+
+/* Timer bar */
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: currentColor;
+  opacity: 0.3;
+  width: 100%;
+  animation: toastProgress 3s linear forwards;
+}
+
+.toast-success .toast-progress {
+  background: #1a7f4b;
+}
+
+.toast-error .toast-progress {
+  background: #b02a2a;
+}
+
+.toast-info .toast-progress {
+  background: #2563a8;
+}
+
+@keyframes toastProgress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+@media (max-width: 560px) {
+  .toast {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    min-width: 0;
+    max-width: none;
+  }
+}
