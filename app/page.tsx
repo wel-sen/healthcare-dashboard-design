@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { ChevronUp, ChevronsUpDown } from "lucide-react";
@@ -33,7 +33,7 @@ type Employee = {
   phone: string;
   email: string;
   status: "Working" | "Not working";
-  joined_on: string;
+  joined_on?: string;
 };
 type Patient = {
   id: number;
@@ -51,7 +51,7 @@ type Medication = {
   date: string;
   name: string;
   weight: string;
-  unit: "g" | "mg";
+  unit: "g" | "mg" | "ml" | "l";
   amount: string;
   price: string;
 };
@@ -59,7 +59,7 @@ type Medicine = {
   id: number;
   name: string;
   weight: string;
-  unit: "g" | "mg";
+  unit: "g" | "mg" | "ml" | "l";
   amount: string;
   price: string;
   type: string;   // ← new
@@ -108,6 +108,7 @@ const seedEmployees: Employee[] = [
     phone: "+251 911 555 0142",
     email: "rachel.kim@edenclinic.com",
     status: "Working",
+    joined_on: "2023-01-15",
   },
   {
     id: 2,
@@ -115,6 +116,7 @@ const seedEmployees: Employee[] = [
     phone: "+251 922 555 0188",
     email: "marcus.j@edenclinic.com",
     status: "Working",
+    joined_on: "2023-01-16",
   },
   {
     id: 3,
@@ -122,6 +124,7 @@ const seedEmployees: Employee[] = [
     phone: "+251 933 555 0124",
     email: "nadia.w@edenclinic.com",
     status: "Not working",
+    joined_on: "2023-01-19",
   },
 ];
 const seedPatients: Patient[] = [
@@ -233,7 +236,8 @@ const dateLabel = (value: string | null | undefined) => {
   const iso = value.length === 10 ? `${value}T00:00:00` : value;
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-US", {
+  return d.toLocaleDateString("am-ET", {
+    calendar: "ethiopic",
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -432,8 +436,8 @@ if (meds.data) setMedicines(meds.data as Medicine[]);
         .includes(query.toLowerCase()),
     ),
     filteredMedication = medications.filter((item) =>
-      item.name.toLowerCase().includes(query.toLowerCase()),
-    );
+  (item.name ?? "").toLowerCase().includes(query.toLowerCase()),
+);
 
   const save = async (data: Record<string, string>) => {
     let hadError = false;
@@ -751,7 +755,7 @@ if (fresh) setMedicines(fresh as Medicine[]);
               "Actions",
             ]}
             rows={filteredEmployees.map((item) => [
-              dateLabel(item.joined_on),
+              item.joined_on,
               item.name,
               item.phone,
               item.email,
@@ -943,7 +947,7 @@ if (fresh) setMedicines(fresh as Medicine[]);
           id: number;
           name: string;
           weight: string;
-          unit: "g" | "mg";
+          unit: "g" | "mg" | "ml" | "l";
           amount: string;
           price: string;
         }
@@ -1155,7 +1159,7 @@ if (fresh) setMedicines(fresh as Medicine[]);
                     : ["Register a medicine first"],
                 ),
                 field("weight", "Weight", "number"),
-                field("unit", "Unit", "text", ["mg", "g"]),
+                field("unit", "Unit", "text", ["mg", "g", "ml", "l"]),
                 field("amount", "Amount / quantity"),
                 field("price", "Item price (ETB)", "number"),
               ]
@@ -1173,7 +1177,7 @@ if (fresh) setMedicines(fresh as Medicine[]);
         "Other",
       ]),
                   field("weight", "Weight", "number"),
-                  field("unit", "Unit", "text", ["mg", "g"]),
+                  field("unit", "Unit", "text", ["mg", "g", "ml", "l"]),
                   field("amount", "Amount / quantity"),
                   field("price", "Item price (ETB)", "number"),
                 ]
@@ -1394,7 +1398,7 @@ if (fresh) setMedicines(fresh as Medicine[]);
     description: string;
     icon: typeof Activity;
     columns: string[];
-    rows: (string | number)[][];
+    rows: (string | number | ReactNode)[][];
     onAdd: () => void;
     onEdit: (id: number) => void;
     onDelete: (id: number) => void;
@@ -1412,8 +1416,20 @@ if (fresh) setMedicines(fresh as Medicine[]);
       sortCol === null
         ? rows
         : [...rows].sort((a, b) => {
-            const av = a[sortCol];
-            const bv = b[sortCol];
+          const avRaw = a[sortCol];
+    const bvRaw = b[sortCol];
+            
+
+             const av =
+          typeof avRaw === "string" || typeof avRaw === "number"
+            ? avRaw
+            : String(avRaw ?? "");
+        const bv =
+          typeof bvRaw === "string" || typeof bvRaw === "number"
+            ? bvRaw
+            : String(bvRaw ?? "");
+
+
             let cmp = 0;
 
             if (looksLikeNumber(av) && looksLikeNumber(bv)) {
@@ -1643,7 +1659,7 @@ if (fresh) setMedicines(fresh as Medicine[]);
     description: string;
     icon: typeof Activity;
     columns: string[];
-    rows: (string | number)[][];
+    rows: (string | number | ReactNode)[][];
     onAdd: () => void;
     onEdit: (id: number) => void;
     onDelete: (id: number) => void;
@@ -1654,7 +1670,7 @@ if (fresh) setMedicines(fresh as Medicine[]);
     const [sortCol, setSortCol] = useState<number | null>(0); //New
     const [sortDir, setSortDir] = useState<"asc" | "desc">("desc"); //New
 
-    const displayCell = (cell: string | number, index: number) => {
+    const displayCell = (cell: string | number | ReactNode, index: number) => {
       if (title === "Pharmacy" && index === 0) return dateLabel(String(cell));
       if (title === "Patients" && index === 0) return dateLabel(String(cell));
       if (title === "Employees" && index === 0) return dateLabel(String(cell));
@@ -1684,8 +1700,19 @@ if (fresh) setMedicines(fresh as Medicine[]);
       sortCol === null
         ? rows
         : [...rows].sort((a, b) => {
-            const av = a[sortCol];
-            const bv = b[sortCol];
+            const avRaw = a[sortCol];
+    const bvRaw = b[sortCol];
+
+             const av =
+          typeof avRaw === "string" || typeof avRaw === "number"
+            ? avRaw
+            : String(avRaw ?? "");
+        const bv =
+          typeof bvRaw === "string" || typeof bvRaw === "number"
+            ? bvRaw
+            : String(bvRaw ?? "");
+
+            
 
             let cmp = 0;
 
@@ -1897,16 +1924,15 @@ if (fresh) setMedicines(fresh as Medicine[]);
       <div className="content-inner">
         <div className="page-intro">
           <div>
-            <p className="eyebrow">
-              {new Date()
-                .toLocaleDateString("en-US", {
-                  weekday: "long",
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric",
-                })
-                .toUpperCase()}
-            </p>
+           <p className="eyebrow">
+  {new Date().toLocaleDateString("am-ET", {
+    calendar: "ethiopic",
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  })}
+</p>
             <h1>
               {new Date().getHours() < 12
                 ? "Good morning"
