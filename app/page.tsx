@@ -1,5 +1,12 @@
 "use client";
 
+
+import { DayPicker } from "@daypicker/ethiopic";
+import "@daypicker/react/style.css";
+import "react-day-picker/style.css";
+import { parse } from "date-fns";
+
+
 import { useState, type ReactNode } from "react";
 import { useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
@@ -262,7 +269,7 @@ const diagnosisChips = (value: string | null | undefined) => {
 };
 
 export default function Page() {
-  // const [isLoggedIn, setIsLoggedIn] = useState(false),
+  
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null),
     [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
@@ -276,7 +283,9 @@ export default function Page() {
     [query, setQuery] = useState(""),
     [modal, setModal] = useState<ModalType>(null),
     [editing, setEditing] = useState<number | null>(null);
-  
+
+     
+
   
   const [avatarMenu, setAvatarMenu] = useState(false);
   const [servicePage, setServicePage] = useState<
@@ -371,6 +380,8 @@ export default function Page() {
       events.forEach((event) => window.removeEventListener(event, resetTimer));
     };
   }, [isLoggedIn]);
+
+  
 
   // Load data whenever the user is logged in
   useEffect(() => {
@@ -1020,55 +1031,67 @@ if (fresh) setMedicines(fresh as Medicine[]);
     const update = (name: string, value: string) =>
       setValues({ ...values, [name]: value });
 
-    const field = (
-      name: string,
-      label: string,
-      kind: "text" | "date" | "number" = "text",
-      options?: string[],
-      optional?: boolean,
-    ) => (
-      <label className="modal-field" key={name}>
-        {label}
-        {optional && <span className="optional-hint"> (optional)</span>}
+   const field = (
+  name: string,
+  label: string,
+  kind: "text" | "date" | "number" = "text",
+  options?: string[],
+  optional?: boolean,
+) => (
+  <label className={`modal-field ${kind === "date" ? "modal-field-full" : ""}`} key={name}>
+    {label}
+    {optional && <span className="optional-hint"> (optional)</span>}
 
-        {name === "phone" ? (
-          <span className="phone-input">
-            <b>+251</b>
-            <input
-              required
-              type="tel"
-              inputMode="tel"
-              placeholder="9xx xxx xxxx"
-              value={(values[name] ?? "").replace(/^\+251\s*/, "")}
-              onChange={(e) => {
-                const digits = e.target.value
-                  .replace(/^\+251\s*/, "")
-                  .replace(/\D/g, "")
-                  .slice(0, 10);
-                update(name, `+251 ${digits}`);
-              }}
-            />
-          </span>
-        ) : options ? (
-          <select
-            required={!optional}
-            value={values[name] ?? options[0]}
-            onChange={(e) => update(name, e.target.value)}
-          >
-            {options.map((option, index) => (
-              <option key={`${option}-${index}`}>{option}</option>
-            ))}
-          </select>
-        ) : (
-          <input
-            required={!optional}
-            type={kind}
-            value={values[name] ?? ""}
-            onChange={(e) => update(name, e.target.value)}
-          />
-        )}
-      </label>
-    );
+    {name === "phone" ? (
+      <span className="phone-input">
+        <b>+251</b>
+        <input
+          required
+          type="tel"
+          inputMode="tel"
+          placeholder="9xx xxx xxxx"
+          value={(values[name] ?? "").replace(/^\+251\s*/, "")}
+          onChange={(e) => {
+            const digits = e.target.value
+              .replace(/^\+251\s*/, "")
+              .replace(/\D/g, "")
+              .slice(0, 10);
+            update(name, `+251 ${digits}`);
+          }}
+        />
+      </span>
+    ) : kind === "date" ? (
+      <DayPicker
+        mode="single"
+        numerals="latn"
+         selected={values[name] ? new Date(values[name]) : undefined}
+        onSelect={(date) => {
+          const iso = date
+  ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+  : "";
+   update(name, iso);
+        }}
+      />
+    ) : options ? (
+      <select
+        required={!optional}
+        value={values[name] ?? options[0]}
+        onChange={(e) => update(name, e.target.value)}
+      >
+        {options.map((option, index) => (
+          <option key={`${option}-${index}`}>{option}</option>
+        ))}
+      </select>
+    ) : (
+      <input
+        required={!optional}
+        type={kind}
+        value={values[name] ?? ""}
+        onChange={(e) => update(name, e.target.value)}
+      />
+    )}
+  </label>
+);
 
     const remarkField = (value: string, onChange: (v: string) => void) => (
       <label className="modal-field modal-field-full" key="remark">
@@ -1911,14 +1934,22 @@ if (fresh) setMedicines(fresh as Medicine[]);
     medications,
     onNavigate,
   }: {
+
+    
     employees: Employee[];
     patients: Patient[];
     medications: Medication[];
     onNavigate: (value: string) => void;
   }) {
+
+    
     const workingEmployees = employees.filter(
       (item) => item.status === "Working",
     );
+
+    const [date, setDate] = useState<Date | undefined>(new Date());
+
+   
 
     return (
       <div className="content-inner">
@@ -2045,6 +2076,9 @@ if (fresh) setMedicines(fresh as Medicine[]);
         </div>
       </div>
     );
+
+    
+
   }
   function StatCard({
     label,
@@ -2068,5 +2102,6 @@ if (fresh) setMedicines(fresh as Medicine[]);
         </div>
       </div>
     );
+    
   }
   
