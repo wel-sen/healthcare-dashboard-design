@@ -4,7 +4,6 @@
 import { DayPicker } from "@daypicker/ethiopic";
 import "@daypicker/react/style.css";
 import "react-day-picker/style.css";
-import { parse } from "date-fns";
 
 
 import { useState, type ReactNode } from "react";
@@ -1123,17 +1122,51 @@ if (fresh) setMedicines(fresh as Medicine[]);
                 field("age", "Patient age", "number"),
                 field("gender", "Gender", "text", ["Female", "Male", "Other"]),
                 <label className="modal-field modal-field-full" key="diagnosis">
-                  Test / Diagnosis name
-                  <select
-                    required
-                    value={values.diagnosis ?? diagnosisOptions[0]}
-                    onChange={(e) => update("diagnosis", e.target.value)}
-                  >
-                    {diagnosisOptions.map((option, index) => (
-                      <option key={`${option}-${index}`}>{option}</option>
-                    ))}
-                  </select>
-                </label>,
+  Test / Diagnosis name
+  <div className="diagnosis-list">
+    {diagnoses.length === 0 ? (
+      <button
+        type="button"
+        className="secondary-button"
+        onClick={() => setDiagnoses([diagnosisOptions[0]])}
+      >
+        + Add diagnosis
+      </button>
+    ) : (
+      diagnoses.map((value, index) => (
+        <div className="diagnosis-row" key={index}>
+          <select
+            required
+            value={value}
+            onChange={(e) => updateDiagnosis(index, e.target.value)}
+          >
+            {diagnosisOptions.map((option, i) => (
+              <option key={`${option}-${i}`}>{option}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="diagnosis-remove"
+            onClick={() => removeDiagnosis(index)}
+            aria-label="Remove diagnosis"
+          >
+            −
+          </button>
+        </div>
+      ))
+    )}
+    {diagnoses.length > 0 && (
+      <button
+        type="button"
+        className="diagnosis-add"
+        onClick={addDiagnosis}
+        aria-label="Add another diagnosis"
+      >
+        +
+      </button>
+    )}
+  </div>
+</label>,
                 field("price", "Service price (ETB)", "number"),
                 remarkField(values.remark ?? "", (value) =>
                   update("remark", value),
@@ -1147,17 +1180,51 @@ if (fresh) setMedicines(fresh as Medicine[]);
                 field("age", "Patient age", "number", undefined, true),
                 field("gender", "Gender", "text", ["Female", "Male", "Other"]), // required
                 <label className="modal-field" key="diagnosis">
-                  Test / Diagnosis name
-                  <select
-                    required
-                    value={values.diagnosis ?? diagnosisOptions[0]}
-                    onChange={(e) => update("diagnosis", e.target.value)}
-                  >
-                    {diagnosisOptions.map((option, index) => (
-                      <option key={`${option}-${index}`}>{option}</option>
-                    ))}
-                  </select>
-                </label>,
+  Test / Diagnosis name
+  <div className="diagnosis-list">
+    {diagnoses.length === 0 ? (
+      <button
+        type="button"
+        className="secondary-button"
+        onClick={() => setDiagnoses([diagnosisOptions[0]])}
+      >
+        + Add diagnosis
+      </button>
+    ) : (
+      diagnoses.map((value, index) => (
+        <div className="diagnosis-row" key={index}>
+          <select
+            required
+            value={value}
+            onChange={(e) => updateDiagnosis(index, e.target.value)}
+          >
+            {diagnosisOptions.map((option, i) => (
+              <option key={`${option}-${i}`}>{option}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="diagnosis-remove"
+            onClick={() => removeDiagnosis(index)}
+            aria-label="Remove diagnosis"
+          >
+            −
+          </button>
+        </div>
+      ))
+    )}
+    {diagnoses.length > 0 && (
+      <button
+        type="button"
+        className="diagnosis-add"
+        onClick={addDiagnosis}
+        aria-label="Add another diagnosis"
+      >
+        +
+      </button>
+    )}
+  </div>
+</label>,
                 field(
                   "price",
                   "Service price (ETB)",
